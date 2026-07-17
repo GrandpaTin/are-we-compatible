@@ -6,8 +6,6 @@ Aligned is a two-player compatibility game for meaningful, playful, and honest c
 
 **Live game:** [grandpatin.github.io/aligned](https://grandpatin.github.io/aligned/)
 
-**Repository:** [github.com/GrandpaTin/aligned](https://github.com/GrandpaTin/aligned)
-
 ![Aligned social preview](og-image.jpg)
 
 ## Gameplay
