@@ -3488,7 +3488,14 @@
 
       .topbar {
         top: max(5px, env(safe-area-inset-top));
-        margin-bottom: 5px;
+        margin-bottom: 3px;
+        justify-content: center !important;
+        gap: 5px !important;
+      }
+
+      .topbar .brand {
+        align-self: center !important;
+        margin-bottom: 0 !important;
       }
 
       h1 {
@@ -3566,59 +3573,129 @@
         min-height: 64px;
       }
 
+      .question-header {
+        margin-bottom: 2px !important;
+      }
+
+      .turn-name {
+        font-size: 1.05rem !important;
+      }
+
+      .round-mode-copy {
+        margin-bottom: 2px !important;
+        font-size: 0.62rem !important;
+      }
+
+      .progress-copy {
+        font-size: 0.76rem !important;
+      }
+
       .progress-track {
-        margin-bottom: 3px;
+        margin-bottom: 2px;
       }
 
       .progress-constellation {
-        margin-bottom: 3px;
-        height: 16px;
+        margin-bottom: 2px;
+        height: 12px;
       }
 
       .slider-panel {
         margin-top: 3px;
-        padding: 4px;
+        padding: 6px 8px;
+        border-radius: 10px;
+      }
+
+      .slider-value {
+        margin: 0 auto 4px !important;
+        padding: 3px 6px !important;
+        min-width: 36px !important;
+        font-size: 0.9rem !important;
+        border-radius: 8px !important;
+      }
+
+      .range-input {
+        height: 28px !important;
       }
 
       .prompt {
-        margin-top: 3px;
+        margin-top: 2px;
+        font-size: clamp(1.05rem, 4.8vw, 1.25rem) !important;
+        line-height: 1.15;
       }
 
       .setup-section-title {
-        margin: 4px 0 2px;
+        margin: 3px 0 1px;
       }
 
       .importance-panel {
         margin-top: 3px;
-        padding: 4px;
+        padding: 3px;
+      }
+
+      .importance-panel strong {
+        font-size: 0.7rem !important;
       }
 
       .importance-options {
         margin-top: 2px;
+        gap: 6px !important;
+      }
+
+      .importance-option {
+        min-height: 28px !important;
+        padding: 3px 6px !important;
+        font-size: 0.68rem !important;
+        border-radius: 6px !important;
       }
 
       .not-ready-button {
-        margin-top: 3px;
+        margin-top: 2px;
+        min-height: 26px !important;
+        font-size: 0.68rem !important;
       }
 
-      .private-reflection {
-        margin-top: 3px;
-        padding: 4px;
+      .private-reflection,
+      .comment-details {
+        margin-top: 2px !important;
+        border-radius: 8px !important;
+      }
+
+      .private-reflection summary,
+      .comment-details summary {
+        padding: 4px 6px !important;
+        font-size: 0.7rem !important;
+      }
+
+      .private-reflection summary::before,
+      .comment-details summary::before {
+        width: 14px !important;
+        height: 14px !important;
+        font-size: 0.7rem !important;
+        border-radius: 4px !important;
+        margin-right: 6px !important;
       }
 
       .actions {
-        margin-top: 4px;
+        margin-top: 3px;
       }
 
       .answer-textarea {
-        min-height: 70px;
-        margin-top: 3px;
-        padding: 4px 6px;
+        min-height: 55px;
+        margin-top: 2px;
+        padding: 3px 5px;
+        font-size: 0.82rem !important;
+      }
+
+      .private-note-input,
+      .comment-textarea {
+        min-height: 48px !important;
+        padding: 4px 6px !important;
+        font-size: 0.82rem !important;
       }
 
       .range-labels {
-        gap: 12px;
-        font-size: 0.72rem;
+        gap: 8px;
+        font-size: 0.65rem;
       }
 
       .question-library-list {
@@ -4030,8 +4107,10 @@
       }
 
       .question-meta {
-        align-items: flex-start;
-        flex-direction: column;
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px;
       }
 
       .actions {
@@ -4176,7 +4255,14 @@
       }
 
       .topbar {
-        margin-bottom: 5px;
+        margin-bottom: 3px;
+        justify-content: center !important;
+        gap: 5px !important;
+      }
+
+      .topbar .brand {
+        align-self: center !important;
+        margin-bottom: 0 !important;
       }
 
       .topic-chip {
