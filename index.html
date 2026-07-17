@@ -4029,49 +4029,122 @@
 
     @media (max-width: 600px) {
       .app-shell {
-        width: min(100% - 24px, 900px);
-        padding-top: max(20px, env(safe-area-inset-top));
+        width: min(100% - 12px, 900px);
+        padding-top: max(3px, env(safe-area-inset-top)) !important;
+        padding-bottom: max(3px, env(safe-area-inset-bottom)) !important;
       }
 
       .brand {
-        margin-bottom: 25px;
+        margin-bottom: 8px;
       }
 
       .topbar {
-        margin-bottom: 25px;
+        margin-bottom: 8px;
       }
 
       .field-grid {
         grid-template-columns: 1fr;
-        gap: 14px;
+        gap: 6px;
       }
 
       .setup-hero {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr) 90px;
+        gap: 8px;
+        text-align: left;
+        align-items: center;
       }
 
       .love-orbit {
-        width: 170px;
-        height: 170px;
-        margin-top: 4px;
+        width: 90px;
+        height: 90px;
+        margin-top: 0;
       }
 
       .orbit-ring {
-        inset: 18px;
+        inset: 10px;
       }
 
       .orbit-heart {
-        width: 66px;
-        height: 66px;
+        width: 36px;
+        height: 36px;
+        font-size: 1.15rem;
+        border-radius: 10px;
       }
 
       .orbit-person {
-        width: 40px;
-        height: 40px;
+        width: 24px;
+        height: 24px;
+        font-size: 0.65rem;
+        border-width: 2px;
+      }
+
+      .play-style-grid {
+        gap: 6px !important;
+      }
+
+      .play-style-card {
+        padding: 5px 6px !important;
+        min-height: 46px !important;
+        border-radius: 8px !important;
+      }
+
+      .play-style-card strong {
+        font-size: 0.74rem !important;
+      }
+
+      .play-style-card small {
+        font-size: 0.62rem !important;
+        margin-top: 2px !important;
+        line-height: 1.2 !important;
+      }
+
+      .count-picker {
+        gap: 6px !important;
+      }
+
+      .count-card {
+        min-height: 40px !important;
+        padding: 4px 6px !important;
+        flex-direction: row !important;
+        gap: 6px !important;
+      }
+
+      .count-number {
+        font-size: 0.98rem !important;
+      }
+
+      .count-time {
+        font-size: 0.65rem !important;
+      }
+
+      .intensity-picker {
+        grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+        gap: 4px !important;
+      }
+
+      .intensity-card {
+        min-height: 42px !important;
+        padding: 4px 2px !important;
+        border-radius: 6px !important;
+        text-align: center !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+      }
+
+      .intensity-card strong {
+        font-size: 0.68rem !important;
+        line-height: 1.1 !important;
+      }
+
+      .intensity-card small {
+        display: none !important;
       }
 
       .mode-picker {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        gap: 6px !important;
       }
 
       .mode-option {
@@ -4079,25 +4152,50 @@
       }
 
       .mode-card {
-        min-height: 82px;
+        min-height: 48px !important;
+        padding: 5px 6px !important;
+        border-radius: 8px !important;
+      }
+
+      .mode-topline {
+        font-size: 0.74rem !important;
+      }
+
+      .mode-description {
+        margin-top: 2px !important;
+        font-size: 0.58rem !important;
+        line-height: 1.2 !important;
       }
 
       .setup-title-row {
-        align-items: flex-start;
-        flex-direction: column;
+        align-items: center !important;
+        flex-direction: row !important;
+        justify-content: space-between !important;
       }
 
       .topic-toolbar {
-        justify-content: flex-start;
+        justify-content: flex-end;
+      }
+
+      .mini-action {
+        font-size: 0.62rem !important;
+        padding: 2px 5px !important;
+        min-height: 22px !important;
       }
 
       .topic-picker {
-        gap: 7px;
+        gap: 4px;
       }
 
       .topic-chip {
-        min-height: 40px;
-        padding: 0 11px;
+        min-height: 30px !important;
+        padding: 4px 6px !important;
+        font-size: 0.7rem !important;
+        border-radius: 6px !important;
+      }
+
+      .topic-icon {
+        font-size: 0.8rem !important;
       }
 
       .question-decor {
