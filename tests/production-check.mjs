@@ -73,6 +73,8 @@ assert(html.includes('id="answer-card-${escapedQuestionId}"'), "Reveal buttons m
 assert(html.includes("unanswered questions are always chosen first"), "The freshness policy must remain visible to players");
 assert(html.includes("const unanswered = questions.filter"), "Question selection must continue prioritizing unanswered prompts");
 assert(html.includes('launchHashParams.get("join")'), "Two-phone mode must accept the one-scan room link");
+assert(html.includes('window.addEventListener("hashchange", handleNearbyJoinLaunch)'), "A reused mobile browser tab must process newly scanned join links");
+assert(html.includes("window.setTimeout(startNearbyRound, 650)"), "The host must start a connected private round automatically");
 assert(html.includes("There is no second QR"), "The pairing interface must explain the one-scan flow");
 assert(!html.includes("Scan response QR"), "The retired second-QR step must not return");
 assert(html.includes('https://are-we-compatible-signal.bdaytin.workers.dev'), "Production signaling endpoint must be configured");

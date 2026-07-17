@@ -8406,9 +8406,10 @@ var qrcode = function() {
     let nearbySignalingSocket = null;
     let nearbyHeartbeatTimer = 0;
     let nearbyReconnectTimer = 0;
+    let nearbyAutoStartTimer = 0;
     let nearbyIceServers = [];
     let nearbyPendingCandidates = [];
-    let nearbyRuntime = { role: null, status: "idle", roomId: "", hostToken: "", joinToken: "", joinURL: "", remotePayload: null, localComplete: false, reconnectAttempts: 0, negotiating: false };
+    let nearbyRuntime = { role: null, status: "idle", roomId: "", hostToken: "", joinToken: "", joinURL: "", remotePayload: null, localComplete: false, reconnectAttempts: 0, negotiating: false, roundStarted: false };
     const SIGNALING_SERVICE_URL = new URLSearchParams(location.search).get("signal") || "https://are-we-compatible-signal.bdaytin.workers.dev";
 
     window.addEventListener("beforeinstallprompt", (event) => {
@@ -8592,6 +8593,7 @@ var qrcode = function() {
     function closeNearbyConnection() {
       clearInterval(nearbyHeartbeatTimer);
       clearTimeout(nearbyReconnectTimer);
+      clearTimeout(nearbyAutoStartTimer);
       if (nearbySignalingSocket) {
         nearbySignalingSocket.__manualClose = true;
         nearbySignalingSocket.close();
@@ -8606,7 +8608,7 @@ var qrcode = function() {
       nearbyPeerConnection = null;
       nearbyIceServers = [];
       nearbyPendingCandidates = [];
-      nearbyRuntime = { role: null, status: "idle", roomId: "", hostToken: "", joinToken: "", joinURL: "", remotePayload: null, localComplete: false, reconnectAttempts: 0, negotiating: false };
+      nearbyRuntime = { role: null, status: "idle", roomId: "", hostToken: "", joinToken: "", joinURL: "", remotePayload: null, localComplete: false, reconnectAttempts: 0, negotiating: false, roundStarted: false };
     }
 
     function sendNearbyMessage(payload) {
@@ -8692,6 +8694,10 @@ var qrcode = function() {
         nearbyRuntime.status = "connected";
         if (state.screen === "nearby") render();
         playSound("match");
+        if (nearbyRuntime.role === "host" && state.screen === "nearby") {
+          clearTimeout(nearbyAutoStartTimer);
+          nearbyAutoStartTimer = window.setTimeout(startNearbyRound, 650);
+        }
       });
       channel.addEventListener("message", handleNearbyMessage);
       channel.addEventListener("close", () => {
@@ -9797,6 +9803,23 @@ var qrcode = function() {
       else showToast("Select and copy the code manually.");
     }
 
+    function startNearbyRound() {
+      if (nearbyRuntime.role !== "host" || nearbyRuntime.roundStarted || state.screen !== "nearby") return;
+      const payload = {
+        type: "round-init", names: [...state.names], questionMode: state.questionMode,
+        questionIntensity: state.questionIntensity, selectedTopics: [...state.selectedTopics],
+        selectedQuestionIds: [...state.selectedQuestionIds], questions: getSelectedQuestions().filter(Boolean)
+      };
+      if (!sendNearbyMessage(payload)) {
+        showToast("The second phone is not connected yet.");
+        return;
+      }
+      nearbyRuntime.roundStarted = true;
+      startGame({ names: state.names, questionMode: state.questionMode, questionCount: state.selectedQuestionIds.length, selectedTopics: state.selectedTopics, selectedQuestionIds: state.selectedQuestionIds, playStyle: "nearby" });
+      state.activePlayer = 0;
+      saveState();
+    }
+
     function renderNearby() {
       const status = nearbyRuntime.status;
       const initial = status === "idle";
@@ -9838,7 +9861,7 @@ var qrcode = function() {
               </div>
             ` : ""}
             ${nearbyRuntime.role === "join" && !connected ? `<div class="nearby-auto-join" style="text-align:center;margin-top:24px"><div class="celebration-orb" aria-hidden="true">⌁</div><h3>${status === "failed" ? "This room could not connect" : "You’re joining automatically"}</h3><p class="topic-note">${status === "failed" ? "The room may have expired. Ask the host to create a fresh QR." : "Keep this screen open. No QR needs to be shown back to the host."}</p></div>` : ""}
-            ${connected ? nearbyRuntime.role === "host" ? `<p class="topic-note">Connection ready. ${escapeHTML(state.names[0])} answers on this phone; ${escapeHTML(state.names[1])} answers on the other.</p><div class="actions"><button class="primary-btn" id="start-nearby-round" type="button">Start private round</button></div>` : `<p class="topic-note">Connected. Waiting for the host to start the round…</p>` : ""}
+            ${connected ? nearbyRuntime.role === "host" ? `<p class="topic-note">Connected! The private round is starting automatically. ${escapeHTML(state.names[0])} answers here; ${escapeHTML(state.names[1])} answers on the other phone.</p><div class="actions"><button class="primary-btn" id="start-nearby-round" type="button">Start now</button></div>` : `<p class="topic-note">Connected. Your private questions are opening automatically…</p>` : ""}
             ${!initial && status !== "connected" ? '<button class="text-btn" id="restart-nearby" type="button" style="margin-top:18px">Start pairing over</button>' : ""}
             <p class="privacy-note" style="margin-top:20px"><span>⌁</span><span>Direct connections are preferred automatically. If a network blocks them, an encrypted relay keeps the game working. The temporary room handles connection metadata only and expires automatically.</span></p>
           </div>
@@ -9850,16 +9873,7 @@ var qrcode = function() {
         try { await navigator.share({ title: "Join our alignment round", text: "Open this private link to connect automatically.", url: nearbyRuntime.joinURL }); } catch {}
       });
       document.getElementById("restart-nearby")?.addEventListener("click", () => { closeNearbyConnection(); render(); });
-      document.getElementById("start-nearby-round")?.addEventListener("click", () => {
-        const payload = {
-          type: "round-init", names: [...state.names], questionMode: state.questionMode,
-          questionIntensity: state.questionIntensity, selectedTopics: [...state.selectedTopics],
-          selectedQuestionIds: [...state.selectedQuestionIds], questions: getSelectedQuestions().filter(Boolean)
-        };
-        if (!sendNearbyMessage(payload)) { showToast("The second phone is not connected yet."); return; }
-        startGame({ names: state.names, questionMode: state.questionMode, questionCount: state.selectedQuestionIds.length, selectedTopics: state.selectedTopics, selectedQuestionIds: state.selectedQuestionIds, playStyle: "nearby" });
-        state.activePlayer = 0; saveState();
-      });
+      document.getElementById("start-nearby-round")?.addEventListener("click", startNearbyRound);
     }
 
     function renderNearbyWait() {
@@ -11737,21 +11751,39 @@ var qrcode = function() {
       }).catch(() => {}));
     }
 
-    const launchHashParams = new URLSearchParams(location.hash.slice(1));
-    const launchNearbyRoom = launchHashParams.get("join") || "";
-    const launchRoomParts = launchNearbyRoom.split(".");
-    const launchRoomId = launchRoomParts[0] || "";
-    const launchJoinToken = launchRoomParts.slice(1).join(".");
-    const hasValidNearbyLaunch = /^[A-Za-z0-9_-]{16,40}$/.test(launchRoomId) && /^[A-Za-z0-9_-]{32,80}$/.test(launchJoinToken);
-    if (hasValidNearbyLaunch) {
-      nearbyRuntime = { ...nearbyRuntime, role: "join", status: "joining", roomId: launchRoomId, joinToken: launchJoinToken };
+    let handledNearbyLaunch = "";
+
+    function handleNearbyJoinLaunch() {
+      const launchHashParams = new URLSearchParams(location.hash.slice(1));
+      const launchNearbyRoom = launchHashParams.get("join") || "";
+      if (!launchNearbyRoom) return false;
+      const launchRoomParts = launchNearbyRoom.split(".");
+      const launchRoomId = launchRoomParts[0] || "";
+      const launchJoinToken = launchRoomParts.slice(1).join(".");
+      const hasValidNearbyLaunch = /^[A-Za-z0-9_-]{16,40}$/.test(launchRoomId) && /^[A-Za-z0-9_-]{32,80}$/.test(launchJoinToken);
+      if (!hasValidNearbyLaunch) {
+        history.replaceState(null, "", location.href.split("#")[0]);
+        showToast("That private join link is incomplete. Ask the host to create a fresh QR.");
+        return false;
+      }
+      const launchSignature = `${launchRoomId}.${launchJoinToken}`;
+      const alreadyHandling = handledNearbyLaunch === launchSignature
+        && nearbyRuntime.roomId === launchRoomId
+        && ["joining", "waiting-host", "connecting", "connected"].includes(nearbyRuntime.status);
+      if (alreadyHandling) return true;
+      handledNearbyLaunch = launchSignature;
       state.playStyle = "nearby";
       state.screen = "nearby";
       saveState();
       history.replaceState(null, "", location.href.split("#")[0]);
+      render();
+      prepareNearbyJoin(launchRoomId, launchJoinToken);
+      return true;
     }
-    render();
-    if (hasValidNearbyLaunch) prepareNearbyJoin(launchRoomId, launchJoinToken);
+
+    window.addEventListener("hashchange", handleNearbyJoinLaunch);
+    window.addEventListener("pageshow", handleNearbyJoinLaunch);
+    if (!handleNearbyJoinLaunch()) render();
   </script>
 </body>
 </html>
