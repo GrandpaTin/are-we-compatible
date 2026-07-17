@@ -189,7 +189,7 @@
     }
 
     .app-shell {
-      width: min(100% - 24px, 780px);
+      width: min(100% - 24px, 1080px);
       min-height: 100dvh;
       margin: 0 auto;
       padding: max(20px, env(safe-area-inset-top)) 0 max(24px, env(safe-area-inset-bottom));
@@ -213,6 +213,31 @@
       font-size: 0.88rem;
       font-weight: 800;
       letter-spacing: 0.02em;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 160ms ease, border-color 160ms ease;
+    }
+
+    .brand:hover {
+      border-color: rgba(251, 113, 133, 0.3);
+      box-shadow: 0 0 12px rgba(251, 113, 133, 0.22);
+      transform: scale(1.03);
+    }
+
+    .brand:active {
+      transform: scale(0.97);
+    }
+
+    .brand:hover .brand-mark {
+      color: var(--coral);
+      text-shadow: 0 0 10px rgba(251, 113, 133, 0.7);
+      animation: heart-beat 1.2s ease-in-out infinite;
+    }
+
+    @media (max-width: 440px) {
+      .brand-text { display: none; }
+      .brand { padding: 6px 8px; }
+      .topbar { gap: 8px; }
     }
 
     .topbar {
@@ -229,18 +254,19 @@
 
     .home-btn {
       display: inline-flex;
-      min-height: 46px;
-      padding: 0 15px;
-      border: 1px solid rgba(148, 163, 184, 0.17);
-      border-radius: 14px;
       align-items: center;
-      gap: 8px;
+      justify-content: center;
+      width: 38px;
+      height: 38px;
+      padding: 0;
+      border: 1px solid rgba(148, 163, 184, 0.17);
+      border-radius: 10px;
       color: #e2e8f0;
       background: rgba(15, 23, 42, 0.55);
       box-shadow: 0 12px 34px rgba(2, 6, 23, 0.18);
       backdrop-filter: blur(14px);
       cursor: pointer;
-      font-size: 0.82rem;
+      font-size: 1.05rem;
       font-weight: 820;
       transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
     }
@@ -251,15 +277,17 @@
       transform: translateY(-2px);
     }
 
+    .home-btn.active {
+      border-color: var(--coral);
+      background: rgba(251, 113, 133, 0.12);
+      box-shadow: 0 0 12px rgba(251, 113, 133, 0.2);
+    }
+
     .home-icon {
       display: grid;
-      width: 25px;
-      height: 25px;
       place-items: center;
-      border-radius: 8px;
       color: var(--coral);
-      background: rgba(251, 113, 133, 0.1);
-      font-size: 0.9rem;
+      font-size: 1.05rem;
     }
 
     .brand-mark {
@@ -285,6 +313,10 @@
       width: 100%;
       margin: auto 0;
       animation: enter 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .screen.no-enter {
+      animation: none !important;
     }
 
     .eyebrow {
@@ -447,7 +479,9 @@
     .setup-card,
     .question-card,
     .lock-card {
-      margin-top: 20px;
+      width: 100%;
+      max-width: 100%;
+      margin: 5px auto 0;
       border: 1px solid var(--line);
       border-radius: var(--radius-lg);
       background: rgba(30, 41, 59, 0.9);
@@ -456,18 +490,143 @@
     }
 
     .setup-card {
-      padding: clamp(16px, 4vw, 26px);
+      padding: 6px 8px;
       background:
         linear-gradient(145deg, rgba(39, 52, 73, 0.94), rgba(30, 41, 59, 0.9));
     }
 
     .setup-section-title {
-      margin: 20px 0 10px;
+      margin: 6px 0 3px;
       color: #e2e8f0;
       font-size: 0.76rem;
       font-weight: 850;
       letter-spacing: 0.08em;
       text-transform: uppercase;
+    }
+
+    .session-dropdown-container {
+      position: relative;
+      width: 100%;
+      margin-top: 4px;
+    }
+
+    .session-dropdown-trigger {
+      display: flex;
+      width: 100%;
+      min-height: 40px;
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: rgba(30, 41, 59, 0.6);
+      color: var(--text);
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      transition: border-color 150ms ease, background 150ms ease;
+    }
+
+    .session-dropdown-trigger:hover {
+      border-color: rgba(251, 113, 133, 0.4);
+      background: rgba(30, 41, 59, 0.8);
+    }
+
+    .session-trigger-arrow {
+      font-size: 0.8rem;
+      color: var(--muted);
+      transition: transform 150ms ease;
+    }
+
+    .session-dropdown-container.open .session-trigger-arrow {
+      transform: rotate(180deg);
+    }
+
+    .session-dropdown-menu {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      z-index: 150;
+      max-height: 240px;
+      margin-top: 4px;
+      overflow-y: auto;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: rgba(15, 23, 42, 0.96);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      padding: 4px 0;
+    }
+
+    .session-dropdown-container.open .session-dropdown-menu {
+      display: block;
+    }
+
+    .session-dropdown-item {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      padding: 8px 12px;
+      border: none;
+      background: transparent;
+      color: var(--text);
+      text-align: left;
+      cursor: pointer;
+      transition: background 120ms ease;
+    }
+
+    .session-dropdown-item:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .session-dropdown-item.selected {
+      background: rgba(251, 113, 133, 0.15);
+      border-left: 2px solid var(--coral);
+    }
+
+    .session-item-header {
+      font-size: 0.84rem;
+      color: #f8fafc;
+    }
+
+    .session-item-copy {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .session-preset-info {
+      margin-top: 6px;
+      padding: 6px 8px;
+      border-radius: var(--radius-md);
+      background: rgba(148, 163, 184, 0.06);
+      font-size: 0.76rem;
+      border: 1px solid rgba(148, 163, 184, 0.1);
+    }
+
+    .preset-info-copy {
+      color: #cbd5e1;
+      font-weight: 550;
+      margin: 0;
+    }
+
+    .preset-config-summary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 0.7rem;
+    }
+
+    .preset-config-summary span {
+      background: rgba(255, 255, 255, 0.04);
+      padding: 2px 6px;
+      border-radius: 4px;
     }
 
     .mode-picker {
@@ -994,7 +1153,7 @@
     .question-card {
       position: relative;
       margin-top: 0;
-      padding: clamp(16px, 4vw, 28px);
+      padding: 6px 8px;
       overflow: hidden;
       background:
         radial-gradient(circle at 100% 0, rgba(251, 113, 133, 0.12), transparent 16rem),
@@ -1305,7 +1464,7 @@
     .lock-card {
       position: relative;
       overflow: hidden;
-      padding: clamp(36px, 8vw, 68px) clamp(24px, 6vw, 52px);
+      padding: 12px 10px;
     }
 
     .lock-card::after {
@@ -1763,7 +1922,9 @@
 
     @media (min-width: 600px) {
       .reveal-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        justify-content: center;
+        gap: 16px;
       }
     }
 
@@ -1771,6 +1932,8 @@
       position: relative;
       display: block;
       width: 100%;
+      max-width: 360px;
+      margin: 0 auto;
       min-height: 170px;
       padding: 0;
       border: 0;
@@ -2940,7 +3103,7 @@
     }
 
     .app-shell {
-      width: min(calc(100% - clamp(24px, 5vw, 64px)), 980px);
+      width: min(calc(100% - clamp(24px, 5vw, 64px)), 1080px);
       padding-top: max(20px, env(safe-area-inset-top));
       padding-right: env(safe-area-inset-right);
       padding-bottom: max(30px, env(safe-area-inset-bottom));
@@ -3320,12 +3483,12 @@
 
       .app-shell {
         width: min(calc(100% - 20px), 980px);
-        padding-top: max(12px, env(safe-area-inset-top));
+        padding-top: max(5px, env(safe-area-inset-top));
       }
 
       .topbar {
         top: max(5px, env(safe-area-inset-top));
-        margin-bottom: 22px;
+        margin-bottom: 5px;
       }
 
       h1 {
@@ -3340,13 +3503,14 @@
       }
 
       .setup-card,
-      .question-card {
-        padding: 20px;
-        border-radius: 24px;
+      .question-card,
+      .lock-card {
+        padding: 3px 4px;
+        border-radius: 10px;
       }
 
       .setup-card {
-        margin-top: 24px;
+        margin-top: 3px;
       }
 
       .setup-start-actions {
@@ -3402,9 +3566,54 @@
         min-height: 64px;
       }
 
+      .progress-track {
+        margin-bottom: 3px;
+      }
+
+      .progress-constellation {
+        margin-bottom: 3px;
+        height: 16px;
+      }
+
       .slider-panel {
-        margin-top: 19px;
-        padding: 19px 14px 14px;
+        margin-top: 3px;
+        padding: 4px;
+      }
+
+      .prompt {
+        margin-top: 3px;
+      }
+
+      .setup-section-title {
+        margin: 4px 0 2px;
+      }
+
+      .importance-panel {
+        margin-top: 3px;
+        padding: 4px;
+      }
+
+      .importance-options {
+        margin-top: 2px;
+      }
+
+      .not-ready-button {
+        margin-top: 3px;
+      }
+
+      .private-reflection {
+        margin-top: 3px;
+        padding: 4px;
+      }
+
+      .actions {
+        margin-top: 4px;
+      }
+
+      .answer-textarea {
+        min-height: 70px;
+        margin-top: 3px;
+        padding: 4px 6px;
       }
 
       .range-labels {
@@ -3963,11 +4172,11 @@
     @media (max-width: 600px) {
       .app-shell {
         width: min(calc(100% - 20px), 980px);
-        padding-top: max(12px, env(safe-area-inset-top));
+        padding-top: max(5px, env(safe-area-inset-top));
       }
 
       .topbar {
-        margin-bottom: 22px;
+        margin-bottom: 5px;
       }
 
       .topic-chip {
@@ -4343,12 +4552,7 @@
     }
 
     .bottom-nav {
-      position: fixed;
-      right: max(10px, env(safe-area-inset-right));
-      bottom: max(8px, env(safe-area-inset-bottom));
-      left: max(10px, env(safe-area-inset-left));
-      z-index: 150;
-      display: none;
+      display: none !important;
       grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 4px;
       max-width: 520px;
@@ -4801,8 +5005,8 @@
     .tutorial-step small { margin-top: 5px; color: var(--muted); line-height: 1.35; }
 
     @media (max-width: 900px) {
-      .bottom-nav { display: grid; }
-      .app-shell { padding-bottom: max(96px, calc(env(safe-area-inset-bottom) + 86px)); }
+      .bottom-nav { display: none !important; }
+      .app-shell { padding-bottom: max(24px, env(safe-area-inset-bottom)); }
     }
 
     @media (max-width: 600px) {
@@ -4816,8 +5020,18 @@
       .round-history-item { grid-template-columns: auto minmax(0, 1fr); }
       .round-history-item .round-actions { grid-column: 1 / -1; }
       .tutorial-steps { grid-template-columns: 1fr; }
-      .question-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .question-actions .primary-btn { grid-column: 1 / -1; width: 100%; margin-left: 0; }
+      .question-actions {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .question-actions .primary-btn {
+        grid-column: auto;
+        width: auto;
+        margin-left: auto;
+      }
     }
 
     /* Four genuinely different visual worlds */
@@ -5440,6 +5654,55 @@
       box-shadow: 0 0 0 3px rgba(233, 103, 130, 0.1), 0 10px 22px rgba(85, 74, 112, 0.08);
     }
 
+    /* Custom tooltips for topbar actions */
+    @media (hover: hover) {
+      [data-tooltip] {
+        position: relative;
+      }
+
+      [data-tooltip]::after {
+        position: absolute;
+        bottom: -38px;
+        left: 50%;
+        transform: translateX(-50%) translateY(4px);
+        z-index: 100;
+        padding: 5px 10px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 8px;
+        color: #f8fafc;
+        background: rgba(15, 23, 42, 0.95);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        font-size: 0.72rem;
+        font-weight: 600;
+        white-space: nowrap;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 160ms cubic-bezier(0.4, 0, 0.2, 1), transform 160ms cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      [data-tooltip]:hover::after {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+    }
+
+    @media (min-width: 900px) {
+      html {
+        font-size: 108%;
+      }
+      .setup-card {
+        padding: 8px 10px;
+      }
+      .question-card {
+        padding: 8px 10px;
+      }
+      .lock-card {
+        padding: 14px 12px;
+      }
+    }
+
     @media (prefers-reduced-motion: reduce) {
       *,
       *::before,
@@ -5465,16 +5728,26 @@
     <header class="topbar">
       <div class="brand" aria-label="Aligned">
         <span class="brand-mark" aria-hidden="true">♡</span>
-        <span>Aligned</span>
+        <span class="brand-text">Aligned</span>
       </div>
-      <div class="topbar-actions" style="display:flex;gap:8px">
-        <button class="home-btn" id="ambient-toggle" type="button" aria-label="Toggle ambient background soundscape">
-          <span class="home-icon" aria-hidden="true">♫</span>
-          <span id="ambient-toggle-label">Music Off</span>
+      <div class="topbar-actions" style="display:flex;gap:6px">
+        <button class="home-btn" id="home-button" type="button" aria-label="Go to Setup / Home page" data-tooltip="Home / Setup">
+          <span class="home-icon" aria-hidden="true">🏠</span>
         </button>
-        <button class="home-btn" id="home-button" type="button" hidden>
-          <span class="home-icon" aria-hidden="true">⌂</span>
-          <span>Home</span>
+        <button class="home-btn" id="library-button" type="button" aria-label="Go to Library page" data-tooltip="Question Library">
+          <span class="home-icon" aria-hidden="true">📚</span>
+        </button>
+        <button class="home-btn" id="results-button" type="button" aria-label="Go to Results / Journal page" data-tooltip="Results Journal">
+          <span class="home-icon" aria-hidden="true">📓</span>
+        </button>
+        <button class="home-btn" id="sound-toggle" type="button" aria-label="Toggle sound effects" data-tooltip="Game Sounds">
+          <span class="home-icon" aria-hidden="true">🔊</span>
+        </button>
+        <button class="home-btn" id="ambient-toggle" type="button" aria-label="Toggle ambient music" data-tooltip="Ambient Music">
+          <span class="home-icon" aria-hidden="true">🎵</span>
+        </button>
+        <button class="home-btn" id="settings-button" type="button" aria-label="Go to Settings page" data-tooltip="Game Settings">
+          <span class="home-icon" aria-hidden="true">⚙️</span>
         </button>
       </div>
     </header>
@@ -8408,7 +8681,7 @@ var qrcode = function() {
         if (!INTENSITY_OPTIONS.some((option) => option.id === restored.questionIntensity)) restored.questionIntensity = "curious";
         if (!["cute", "dreamy", "arcade"].includes(restored.soundTheme)) restored.soundTheme = "cute";
         restored.soundVolume = Math.max(0, Math.min(1, Number(restored.soundVolume) || 0.7));
-        restored.ambientMusicEnabled = restored.ambientMusicEnabled === true;
+        restored.ambientMusicEnabled = false; // Always start muted/silent when first opened to align with browser autoplay guidelines
         restored.hapticsEnabled = restored.hapticsEnabled !== false;
         if (!["midnight", "sunset", "cosmic", "pastel"].includes(restored.visualTheme)) restored.visualTheme = "midnight";
         if (!["small", "normal", "large"].includes(restored.textSize)) restored.textSize = "normal";
@@ -9238,7 +9511,7 @@ var qrcode = function() {
         
         this.masterGain = this.ctx.createGain();
         this.masterGain.gain.setValueAtTime(0.0001, this.ctx.currentTime);
-        this.masterGain.gain.linearRampToValueAtTime(state.soundVolume * 0.15, this.ctx.currentTime + 3.0);
+        this.masterGain.gain.linearRampToValueAtTime(state.soundVolume * 0.65, this.ctx.currentTime + 3.0);
 
         this.filter.connect(this.masterGain);
         this.masterGain.connect(this.ctx.destination);
@@ -9261,7 +9534,7 @@ var qrcode = function() {
           osc.type = "triangle";
           osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
           osc.detune.setValueAtTime((index % 2 === 0 ? 4 : -4) + (Math.random() - 0.5) * 2, this.ctx.currentTime);
-          gain.gain.setValueAtTime(0.02, this.ctx.currentTime);
+          gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
           
           const voiceLfo = this.ctx.createOscillator();
           voiceLfo.type = "sine";
@@ -9311,12 +9584,30 @@ var qrcode = function() {
         if (this.masterGain && this.ctx) {
           const now = this.ctx.currentTime;
           this.masterGain.gain.setValueAtTime(this.masterGain.gain.value, now);
-          this.masterGain.gain.linearRampToValueAtTime(state.soundVolume * 0.15, now + 0.5);
+          this.masterGain.gain.linearRampToValueAtTime(state.soundVolume * 0.65, now + 0.5);
         }
       }
     }
 
     ambientSoundscape = new ProceduralAmbient();
+
+    function triggerSparkles(x, y, amount = 10, distance = 45) {
+      if (state.reducedMotion) return;
+      const colors = ["var(--coral)", "var(--blue)", "var(--lavender)", "var(--gold)", "var(--sun)", "#38bdf8", "#a78bfa"];
+      for (let i = 0; i < amount; i++) {
+        const spark = document.createElement("span");
+        spark.className = "celebration-spark";
+        spark.style.left = `${x}px`;
+        spark.style.top = `${y}px`;
+        spark.style.setProperty("--spark-color", colors[randomIndex(colors.length)]);
+        spark.style.setProperty("--spark-rotate", `${i * (360 / amount) + randomIndex(30)}deg`);
+        spark.style.setProperty("--spark-distance", `${15 + randomIndex(distance)}px`);
+        spark.style.animationDuration = `${600 + randomIndex(400)}ms`;
+        if (i % 2 === 0) spark.style.borderRadius = "50%";
+        document.body.appendChild(spark);
+        window.setTimeout(() => spark.remove(), 1000);
+      }
+    }
 
     function requestGyroPermission() {
       if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") {
@@ -9351,13 +9642,38 @@ var qrcode = function() {
         ambientSoundscape.stop();
       }
 
-      const btn = document.getElementById("ambient-toggle");
-      const label = document.getElementById("ambient-toggle-label");
-      if (btn && label) {
-        btn.classList.toggle("active", state.ambientMusicEnabled);
-        label.textContent = state.ambientMusicEnabled ? "Music On" : "Music Off";
-        btn.style.borderColor = state.ambientMusicEnabled ? "var(--coral)" : "";
-        btn.style.background = state.ambientMusicEnabled ? "rgba(251, 113, 133, 0.12)" : "";
+      const ambientBtn = document.getElementById("ambient-toggle");
+      if (ambientBtn) {
+        ambientBtn.classList.toggle("active", state.ambientMusicEnabled);
+        ambientBtn.style.borderColor = state.ambientMusicEnabled ? "var(--coral)" : "";
+        ambientBtn.style.background = state.ambientMusicEnabled ? "rgba(251, 113, 133, 0.12)" : "";
+      }
+
+      const soundBtn = document.getElementById("sound-toggle");
+      if (soundBtn) {
+        soundBtn.classList.toggle("active", state.soundEnabled);
+        soundBtn.style.borderColor = state.soundEnabled ? "var(--coral)" : "";
+        soundBtn.style.background = state.soundEnabled ? "rgba(251, 113, 133, 0.12)" : "";
+        const iconSpan = soundBtn.querySelector(".home-icon");
+        if (iconSpan) {
+          iconSpan.textContent = state.soundEnabled ? "🔊" : "🔇";
+        }
+      }
+
+      const navButtons = {
+        "home-button": "setup",
+        "library-button": "library",
+        "results-button": "results",
+        "settings-button": "settings"
+      };
+      for (const [id, screenName] of Object.entries(navButtons)) {
+        const el = document.getElementById(id);
+        if (el) {
+          const isActive = state.screen === screenName || (screenName === "setup" && state.screen === "setup");
+          el.classList.toggle("active", isActive);
+          el.style.borderColor = isActive ? "var(--coral)" : "";
+          el.style.background = isActive ? "rgba(251, 113, 133, 0.12)" : "";
+        }
       }
     }
 
@@ -9560,20 +9876,15 @@ var qrcode = function() {
       render();
     }
 
-    homeButton.addEventListener("click", () => {
-      if (["library", "results", "settings", "celebration", "reveal"].includes(state.screen)) {
-        state.screen = "setup";
-        state.resumeScreen = null;
-        saveState();
-        playSound("tap");
-        render();
-      } else {
-        openExitDialog();
-      }
-    });
-
-    bottomNav.querySelectorAll("[data-app-route]").forEach((button) => {
-      button.addEventListener("click", () => navigateToScreen(button.dataset.appRoute));
+    document.getElementById("home-button")?.addEventListener("click", () => navigateToScreen("setup"));
+    document.getElementById("library-button")?.addEventListener("click", () => navigateToScreen("library"));
+    document.getElementById("results-button")?.addEventListener("click", () => navigateToScreen("results"));
+    document.getElementById("settings-button")?.addEventListener("click", () => navigateToScreen("settings"));
+    document.getElementById("sound-toggle")?.addEventListener("click", () => {
+      state.soundEnabled = !state.soundEnabled;
+      saveState();
+      playSound("tap");
+      applyPreferences();
     });
 
     function escapeHTML(value) {
@@ -10168,7 +10479,7 @@ var qrcode = function() {
       else if (state.screen === "nearby-wait") renderNearbyWait();
       else renderSetup();
 
-      homeButton.hidden = state.screen === "setup";
+      homeButton.hidden = false;
       bottomNav.querySelectorAll("[data-app-route]").forEach((button) => {
         button.classList.toggle("active", button.dataset.appRoute === state.screen || (state.screen === "setup" && button.dataset.appRoute === "setup"));
         if (button.classList.contains("active")) button.setAttribute("aria-current", "page");
@@ -10176,6 +10487,11 @@ var qrcode = function() {
       });
       if (screenChanged) {
         window.scrollTo({ top: 0, behavior: "auto" });
+      } else {
+        const screenEl = app.querySelector(".screen");
+        if (screenEl) {
+          screenEl.classList.add("no-enter");
+        }
       }
     }
 
@@ -10826,7 +11142,17 @@ var qrcode = function() {
             <article class="settings-card">
               <h3>Private reflections</h3><p>Add a device-only PIN before opening saved private notes.</p>
               <button class="secondary-btn" id="configure-pin" type="button" style="margin-top:12px">${state.privatePinHash ? "Remove or change PIN" : "Set a private-notes PIN"}</button>
-              <button class="secondary-btn" id="settings-encrypted-export" type="button" style="margin-top:9px">Export encrypted backup</button>
+            </article>
+            <article class="settings-card full">
+              <h3>Save & transfer game data</h3><p>Readable JSON · stored locally in this browser. Keep backups or transfer your progress to another device.</p>
+              <div class="data-tools" style="margin-top:10px">
+                <button class="data-tool" id="export-data" type="button"><span aria-hidden="true">↓</span>Export backup</button>
+                <button class="data-tool" id="export-encrypted" type="button"><span aria-hidden="true">◇</span>Encrypted backup</button>
+                <button class="data-tool" id="import-data" type="button"><span aria-hidden="true">↑</span>Import backup</button>
+                <button class="data-tool danger" id="reset-game" type="button"><span aria-hidden="true">↺</span>Reset everything</button>
+              </div>
+              <input id="import-file" type="file" accept="application/json,.json,.aligned,.awc" hidden>
+              <p class="data-status" id="data-status" role="status"></p>
             </article>
             <article class="settings-card full">
               <h3>Install & offline play</h3><p>Install the game on a phone for a full-screen, offline-friendly experience. Availability depends on the browser.</p>
@@ -10868,7 +11194,32 @@ var qrcode = function() {
         document.getElementById("install-status").textContent = "Update check complete.";
       });
       document.getElementById("configure-pin").addEventListener("click", configurePrivatePin);
-      document.getElementById("settings-encrypted-export").addEventListener("click", exportEncryptedBackup);
+      document.getElementById("export-data").addEventListener("click", exportBackup);
+      document.getElementById("export-encrypted").addEventListener("click", exportEncryptedBackup);
+      const importInput = document.getElementById("import-file");
+      document.getElementById("import-data").addEventListener("click", () => importInput.click());
+      importInput.addEventListener("change", async () => {
+        const file = importInput.files?.[0];
+        if (!file) return;
+        const status = document.getElementById("data-status");
+        try {
+          let payload = JSON.parse(await file.text());
+          if (payload?.encrypted === true) payload = await decryptBackupWrapper(payload);
+          const importedState = backupToState(payload);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(importedState));
+          state = loadState();
+          libraryView = { filter: "all", topic: "all", search: "", limit: 40 };
+          playSound("match");
+          render();
+          showToast("Backup imported successfully. Your saved state is restored.");
+        } catch (importError) {
+          status.style.color = "var(--coral)";
+          status.textContent = importError?.message || "That backup could not be imported.";
+        } finally {
+          importInput.value = "";
+        }
+      });
+      document.getElementById("reset-game").addEventListener("click", openResetDialog);
     }
 
     function renderSetup() {
@@ -10876,6 +11227,7 @@ var qrcode = function() {
       const answeredCount = state.answeredQuestionIds.filter((id) => catalog.some((question) => question.id === id)).length;
       const latestRound = state.completedRounds[state.completedRounds.length - 1];
       const allowedTopics = allowedTopicsForIntensity();
+      const activePreset = SESSION_PRESETS.find(p => p.id === state.sessionPreset) || SESSION_PRESETS[0];
       const canResume = ["question", "intermission", "nearby", "nearby-wait"].includes(state.resumeScreen);
       const resumeMarkup = canResume && state.selectedQuestionIds.length ? `
         <section class="resume-card" aria-label="Paused round">
@@ -10950,10 +11302,22 @@ var qrcode = function() {
               <button class="play-style-card ${state.playStyle === "nearby" ? "active" : ""}" type="button" data-play-style="nearby"><strong>⌁ Two phones · one scan</strong><small>Scan once, connect automatically, and answer privately on separate phones.</small></button>
             </div>
 
-            <p class="setup-section-title">Choose a session</p>
-            <div class="preset-grid" aria-label="Session presets">
-              ${SESSION_PRESETS.map((preset) => `<button class="preset-card ${state.sessionPreset === preset.id ? "active" : ""}" type="button" data-session-preset="${preset.id}"><strong>${preset.icon} ${preset.label}</strong><small>${preset.copy}</small></button>`).join("")}
+            <p class="setup-section-title">Session preset</p>
+            <div class="session-dropdown-container" id="session-dropdown">
+              <button class="session-dropdown-trigger" id="session-select-trigger" type="button" aria-expanded="false" aria-haspopup="listbox">
+                <span class="session-trigger-val">${activePreset.icon} ${activePreset.label}</span>
+                <span class="session-trigger-arrow">▾</span>
+              </button>
+              <div class="session-dropdown-menu" id="session-select-menu" role="listbox">
+                ${SESSION_PRESETS.map((preset) => `
+                  <button class="session-dropdown-item ${state.sessionPreset === preset.id ? "selected" : ""}" role="option" type="button" data-session-preset="${preset.id}" aria-selected="${state.sessionPreset === preset.id ? "true" : "false"}">
+                    <span class="session-item-header"><strong>${preset.icon} ${preset.label}</strong></span>
+                    <span class="session-item-copy">${preset.copy}</span>
+                  </button>
+                `).join("")}
+              </div>
             </div>
+            <div class="session-preset-info" id="session-preset-info"></div>
 
             <p class="setup-section-title" id="round-length-label">How many questions?</p>
             <div class="count-picker" role="radiogroup" aria-labelledby="round-length-label">
@@ -11022,42 +11386,6 @@ var qrcode = function() {
               `).join("")}
             </div>
             <p class="topic-note"><strong>Freshness promise:</strong> unanswered questions are always chosen first. After an eligible pool is complete, the least recently seen prompts return first.<br>Spicy, Politics, Money, and Dealbreakers are opt-in. Choose one pack for a focused round or combine several.</p>
-
-            <label class="sound-setting">
-              <input id="sound-toggle" type="checkbox" ${state.soundEnabled ? "checked" : ""}>
-              <span class="sound-copy"><span aria-hidden="true">♫</span><span>Game sounds<small>Play gentle taps, chimes, and reveal sounds</small></span></span>
-              <span class="toggle-track" aria-hidden="true"></span>
-            </label>
-
-            <button class="library-launch" id="open-library" type="button">
-              <span class="library-launch-copy"><span class="library-launch-icon" aria-hidden="true">▦</span><span>Explore the Question Library</span></span>
-              <span class="library-launch-count">${answeredCount}/${catalog.length} answered →</span>
-            </button>
-            <div class="data-tools" style="margin-top:10px">
-              <button class="data-tool" id="open-results" type="button"><span aria-hidden="true">◎</span>Results Journal</button>
-              <button class="data-tool" id="open-settings" type="button"><span aria-hidden="true">⚙</span>Game settings</button>
-            </div>
-
-            ${state.customPacks.length ? `
-              <div class="pack-manager" style="margin-top: 14px">
-                <p class="setup-section-title" style="margin-top:0">Your custom packs</p>
-                <div class="library-filters">
-                  ${state.customPacks.map((pack) => `<button class="library-filter" type="button" data-start-pack="${escapeHTML(pack.id)}">▶ ${escapeHTML(pack.name)} · ${pack.questionIds.length}Q</button>`).join("")}
-                </div>
-              </div>
-            ` : ""}
-
-            <div class="data-management">
-              <div class="data-management-title"><span>Save & transfer</span><span>Readable JSON · stored locally</span></div>
-              <div class="data-tools">
-                <button class="data-tool" id="export-data" type="button"><span aria-hidden="true">↓</span>Export backup</button>
-                <button class="data-tool" id="export-encrypted" type="button"><span aria-hidden="true">◇</span>Encrypted backup</button>
-                <button class="data-tool" id="import-data" type="button"><span aria-hidden="true">↑</span>Import backup</button>
-                <button class="data-tool danger" id="reset-game" type="button"><span aria-hidden="true">↺</span>Reset everything</button>
-              </div>
-              <input id="import-file" type="file" accept="application/json,.json,.aligned,.awc" hidden>
-              <p class="data-status" id="data-status" role="status"></p>
-            </div>
             <p class="error" id="setup-error" role="alert"></p>
             <div class="actions setup-start-actions">
               <button class="primary-btn" type="submit">Start your round</button>
@@ -11091,21 +11419,72 @@ var qrcode = function() {
         playSound("tap");
         render();
       }));
-      document.querySelectorAll("[data-session-preset]").forEach((button) => button.addEventListener("click", () => {
-        rememberNames();
-        const preset = SESSION_PRESETS.find((item) => item.id === button.dataset.sessionPreset);
-        if (!preset) return;
-        state.sessionPreset = preset.id;
+       const updatePresetInfo = (presetId) => {
+        const preset = SESSION_PRESETS.find(p => p.id === presetId);
+        const infoEl = document.getElementById("session-preset-info");
+        if (!preset || !infoEl) return;
+        
+        let configSummary = "";
         if (preset.id !== "custom") {
-          state.questionCount = preset.count;
-          state.questionIntensity = preset.intensity;
-          state.questionMode = preset.mode;
-          state.selectedTopics = [...preset.topics];
+          const topicsFormatted = preset.topics.map(t => {
+            const opt = TOPIC_OPTIONS.find(o => o.id === t);
+            return opt ? `${opt.icon} ${opt.label}` : t;
+          }).join(", ");
+          
+          configSummary = `
+            <div class="preset-config-summary">
+              <span><strong>Length:</strong> ${preset.count} Qs</span>
+              <span><strong>Intensity:</strong> ${preset.intensity.charAt(0).toUpperCase() + preset.intensity.slice(1)}</span>
+              <span><strong>Packs:</strong> ${topicsFormatted}</span>
+            </div>
+          `;
+        } else {
+          configSummary = `
+            <div class="preset-config-summary">
+              <span>Customize player names, device setup, topic packs, and intensity below.</span>
+            </div>
+          `;
         }
-        saveState();
-        playSound("unlock");
-        render();
-      }));
+        
+        infoEl.innerHTML = `
+          <p class="preset-info-copy">${preset.copy}</p>
+          ${configSummary}
+        `;
+      };
+      
+      updatePresetInfo(state.sessionPreset);
+
+      const dropdownContainer = document.getElementById("session-dropdown");
+      const dropdownTrigger = document.getElementById("session-select-trigger");
+      
+      dropdownTrigger.addEventListener("click", (event) => {
+        event.stopPropagation();
+        dropdownContainer.classList.toggle("open");
+        const isOpen = dropdownContainer.classList.contains("open");
+        dropdownTrigger.setAttribute("aria-expanded", isOpen ? "true" : "false");
+      });
+      
+
+      
+      dropdownContainer.querySelectorAll("[data-session-preset]").forEach((button) => {
+        button.addEventListener("click", (event) => {
+          event.stopPropagation();
+          rememberNames();
+          const presetId = button.dataset.sessionPreset;
+          const preset = SESSION_PRESETS.find((item) => item.id === presetId);
+          if (!preset) return;
+          state.sessionPreset = preset.id;
+          if (preset.id !== "custom") {
+            state.questionCount = preset.count;
+            state.questionIntensity = preset.intensity;
+            state.questionMode = preset.mode;
+            state.selectedTopics = [...preset.topics];
+          }
+          saveState();
+          playSound("unlock");
+          render();
+        });
+      });
       document.getElementById("resume-round")?.addEventListener("click", () => {
         state.screen = state.resumeScreen || "question";
         state.resumeScreen = null;
@@ -11176,20 +11555,7 @@ var qrcode = function() {
         });
       });
 
-      document.getElementById("sound-toggle").addEventListener("change", (event) => {
-        state.soundEnabled = event.currentTarget.checked;
-        saveState();
-        if (state.soundEnabled) playSound("unlock");
-      });
-
-      document.getElementById("open-library").addEventListener("click", () => {
-        state.screen = "library";
-        saveState();
-        playSound("unlock");
-        render();
-      });
-      document.getElementById("open-results").addEventListener("click", () => navigateToScreen("results"));
-      document.getElementById("open-settings").addEventListener("click", () => navigateToScreen("settings"));
+      // Navigation and sound triggers are now handled globally in the topbar control center.
 
       document.querySelectorAll("[data-start-pack]").forEach((button) => {
         button.addEventListener("click", () => {
@@ -11219,31 +11585,7 @@ var qrcode = function() {
         });
       });
 
-      document.getElementById("export-data").addEventListener("click", exportBackup);
-      document.getElementById("export-encrypted").addEventListener("click", exportEncryptedBackup);
-      const importInput = document.getElementById("import-file");
-      document.getElementById("import-data").addEventListener("click", () => importInput.click());
-      importInput.addEventListener("change", async () => {
-        const file = importInput.files?.[0];
-        if (!file) return;
-        const status = document.getElementById("data-status");
-        try {
-          let payload = JSON.parse(await file.text());
-          if (payload?.encrypted === true) payload = await decryptBackupWrapper(payload);
-          const importedState = backupToState(payload);
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(importedState));
-          state = loadState();
-          libraryView = { filter: "all", topic: "all", search: "", limit: 40 };
-          playSound("match");
-          render();
-          showToast("Backup imported successfully. Your saved state is restored.");
-        } catch (importError) {
-          status.style.color = "var(--coral)";
-          status.textContent = importError?.message || "That backup could not be imported.";
-        } finally {
-          importInput.value = "";
-        }
-      });
+      // Backup data tools are now handled in renderSettings.
 
       form.addEventListener("submit", (event) => {
         event.preventDefault();
@@ -11284,7 +11626,6 @@ var qrcode = function() {
         }));
       });
 
-      document.getElementById("reset-game").addEventListener("click", openResetDialog);
       if (!state.tutorialSeen) requestAnimationFrame(openTutorial);
     }
 
@@ -12161,6 +12502,24 @@ var qrcode = function() {
         card.style.setProperty("--holo-opacity", "0.45");
       });
     }, { passive: true });
+
+    document.addEventListener("click", (event) => {
+      const activeDropdown = document.querySelector(".session-dropdown-container.open");
+      if (activeDropdown && !event.target.closest(".session-dropdown-container")) {
+        activeDropdown.classList.remove("open");
+        const trigger = activeDropdown.querySelector(".session-dropdown-trigger");
+        if (trigger) trigger.setAttribute("aria-expanded", "false");
+      }
+
+      const target = event.target;
+      const button = target.closest("button, input[type='radio'], input[type='checkbox'], .topic-chip, .brand, .preset-card, .play-style-card, .count-card, .intensity-card, .mode-card, .session-dropdown-trigger, .session-dropdown-item");
+      if (button) {
+        const rect = target.getBoundingClientRect();
+        const x = event.clientX || (rect.left + rect.width / 2);
+        const y = event.clientY || (rect.top + rect.height / 2);
+        triggerSparkles(x, y, 8, 35);
+      }
+    });
 
     window.addEventListener("hashchange", handleNearbyJoinLaunch);
     window.addEventListener("pageshow", handleNearbyJoinLaunch);
