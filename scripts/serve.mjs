@@ -51,5 +51,5 @@ const server = createServer((request, response) => {
 
 server.listen(port, host, () => {
   const displayHost = host === "0.0.0.0" ? "your-computer-ip" : host;
-  console.log(`Are We Compatible? is available at http://${displayHost}:${port}`);
+  console.log(`Aligned is available at http://${displayHost}:${port}`);
 });

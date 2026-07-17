@@ -9,26 +9,27 @@
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="We Align">
-  <link rel="canonical" href="https://grandpatin.github.io/are-we-compatible/">
+  <meta name="application-name" content="Aligned">
+  <meta name="apple-mobile-web-app-title" content="Aligned">
+  <link rel="canonical" href="https://grandpatin.github.io/aligned/">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <meta name="description" content="Discover how well you align through private questions, playful reveals, and thoughtful conversation—on one device or two nearby phones.">
+  <meta name="description" content="A two-player compatibility game for meaningful, playful, and honest conversations.">
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://grandpatin.github.io/are-we-compatible/">
-  <meta property="og:site_name" content="Are We Compatible?">
-  <meta property="og:title" content="Are We Compatible?">
-  <meta property="og:description" content="A private, playful relationship game for discovering how well two people align.">
-  <meta property="og:image" content="https://grandpatin.github.io/are-we-compatible/og-image.jpg">
+  <meta property="og:url" content="https://grandpatin.github.io/aligned/">
+  <meta property="og:site_name" content="Aligned">
+  <meta property="og:title" content="Aligned — Discover How Well You Align">
+  <meta property="og:description" content="A two-player compatibility game for meaningful, playful, and honest conversations.">
+  <meta property="og:image" content="https://grandpatin.github.io/aligned/og-image.jpg">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="Two overlapping hearts on a playful midnight background">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Are We Compatible?">
-  <meta name="twitter:description" content="A private, playful relationship game for discovering how well two people align.">
-  <meta name="twitter:image" content="https://grandpatin.github.io/are-we-compatible/og-image.jpg">
-  <title>Are We Compatible?</title>
+  <meta name="twitter:title" content="Aligned — Discover How Well You Align">
+  <meta name="twitter:description" content="A two-player compatibility game for meaningful, playful, and honest conversations.">
+  <meta name="twitter:image" content="https://grandpatin.github.io/aligned/og-image.jpg">
+  <title>Aligned — Discover How Well You Align</title>
   <style>
     :root {
       color-scheme: dark;
@@ -5429,9 +5430,9 @@
   </div>
   <main class="app-shell">
     <header class="topbar">
-      <div class="brand" aria-label="Are We Compatible?">
+      <div class="brand" aria-label="Aligned">
         <span class="brand-mark" aria-hidden="true">♡</span>
-        <span>Are We Compatible?</span>
+        <span>Aligned</span>
       </div>
       <button class="home-btn" id="home-button" type="button" hidden>
         <span class="home-icon" aria-hidden="true">⌂</span>
@@ -8065,7 +8066,10 @@ var qrcode = function() {
       { id: "dlb_21", topic: "dealbreakers", category: "Dealbreakers", type: "text", prompt: "When should commitment mean staying—and when should self-respect mean leaving?" }
     ];
 
-    const STORAGE_KEY = "are-we-compatible-state-v1";
+    const STORAGE_KEY = "aligned-state-v1";
+    // Keep the prior key readable so existing players retain names, history, preferences, and in-progress rounds.
+    const LEGACY_STORAGE_KEYS = ["are-we-compatible-state-v1"];
+    const BACKUP_APP_NAMES = new Set(["Aligned", "Are We Compatible?"]);
     const CATEGORIES = [
       "Intimacy",
       "Values & Lifestyle",
@@ -8253,9 +8257,22 @@ var qrcode = function() {
         .filter((round) => round.questionIds.length);
     }
 
+    function storedStateJSON() {
+      const current = localStorage.getItem(STORAGE_KEY);
+      if (current) return current;
+      for (const legacyKey of LEGACY_STORAGE_KEYS) {
+        const legacy = localStorage.getItem(legacyKey);
+        if (!legacy) continue;
+        JSON.parse(legacy);
+        localStorage.setItem(STORAGE_KEY, legacy);
+        return legacy;
+      }
+      return null;
+    }
+
     function loadState() {
       try {
-        const cached = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        const cached = JSON.parse(storedStateJSON());
         if (!cached || ![1, 2].includes(Number(cached.version))) return initialState();
 
         const validScreens = ["setup", "question", "intermission", "celebration", "reveal", "library", "results", "settings", "nearby", "nearby-wait"];
@@ -8428,6 +8445,7 @@ var qrcode = function() {
     let nearbyIceServers = [];
     let nearbyPendingCandidates = [];
     let nearbyRuntime = { role: null, status: "idle", roomId: "", hostToken: "", joinToken: "", joinURL: "", remotePayload: null, localComplete: false, reconnectAttempts: 0, negotiating: false, roundStarted: false };
+    // Keep this deployed infrastructure URL stable so existing TURN secrets and installed clients continue to work.
     const SIGNALING_SERVICE_URL = new URLSearchParams(location.search).get("signal") || "https://are-we-compatible-signal.bdaytin.workers.dev";
 
     window.addEventListener("beforeinstallprompt", (event) => {
@@ -8853,7 +8871,7 @@ var qrcode = function() {
 
     function createBackupPayload() {
       return {
-        app: "Are We Compatible?",
+        app: "Aligned",
         formatVersion: 2,
         exportedAt: new Date().toISOString(),
         players: { names: [...state.names] },
@@ -8909,7 +8927,7 @@ var qrcode = function() {
     }
 
     function backupToState(payload) {
-      if (payload?.app === "Are We Compatible?" && [1, 2].includes(Number(payload?.formatVersion))) {
+      if (BACKUP_APP_NAMES.has(payload?.app) && [1, 2].includes(Number(payload?.formatVersion))) {
         return {
           version: 2,
           screen: payload.currentGame?.screen || "setup",
@@ -8956,7 +8974,7 @@ var qrcode = function() {
         };
       }
       if ([1, 2].includes(Number(payload?.version))) return { ...payload, version: 2 };
-      throw new Error("This does not look like an Are We Compatible? backup file.");
+      throw new Error("This does not look like an Aligned backup file or a supported legacy backup.");
     }
 
     function exportBackup() {
@@ -8965,7 +8983,7 @@ var qrcode = function() {
       const anchor = document.createElement("a");
       const date = new Date().toISOString().slice(0, 10);
       anchor.href = url;
-      anchor.download = `are-we-compatible-backup-${date}.json`;
+      anchor.download = `aligned-backup-${date}.json`;
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
@@ -9038,12 +9056,12 @@ var qrcode = function() {
       const key = await deriveBackupKey(passphrase, salt);
       const plaintext = new TextEncoder().encode(JSON.stringify(createBackupPayload()));
       const encrypted = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, plaintext));
-      const wrapper = { app: "Are We Compatible?", formatVersion: 2, encrypted: true, cipher: "AES-GCM", kdf: "PBKDF2-SHA256", iterations: 250000, salt: bytesToBase64(salt), iv: bytesToBase64(iv), data: bytesToBase64(encrypted) };
+      const wrapper = { app: "Aligned", formatVersion: 2, encrypted: true, cipher: "AES-GCM", kdf: "PBKDF2-SHA256", iterations: 250000, salt: bytesToBase64(salt), iv: bytesToBase64(iv), data: bytesToBase64(encrypted) };
       const blob = new Blob([JSON.stringify(wrapper)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = `are-we-compatible-private-${new Date().toISOString().slice(0, 10)}.awc`;
+      anchor.download = `aligned-private-${new Date().toISOString().slice(0, 10)}.aligned`;
       document.body.appendChild(anchor); anchor.click(); anchor.remove();
       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
       playSound("lock");
@@ -9066,6 +9084,7 @@ var qrcode = function() {
     async function hashPin(pin) {
       if (!window.crypto?.subtle) {
         let hash = 2166136261;
+        // Retain the legacy namespace so existing device PIN hashes remain valid after the rebrand.
         for (const character of `awc-private-notes:${pin}`) {
           hash ^= character.charCodeAt(0);
           hash = Math.imul(hash, 16777619);
@@ -9280,7 +9299,7 @@ var qrcode = function() {
       });
       overlay.querySelector("#cancel-reset").addEventListener("click", close);
       overlay.querySelector("#confirm-reset").addEventListener("click", () => {
-        localStorage.removeItem(STORAGE_KEY);
+        [STORAGE_KEY, ...LEGACY_STORAGE_KEYS].forEach((key) => localStorage.removeItem(key));
         state = initialState();
         libraryView = { filter: "all", topic: "all", search: "", limit: 40 };
         document.removeEventListener("keydown", onKeydown);
@@ -9903,10 +9922,10 @@ var qrcode = function() {
       cleanupResponsiveRender = () => {};
       applyPreferences();
       document.title = state.screen === "reveal"
-        ? "Your Reveal Board — Are We Compatible?"
+        ? "Your Reveal Board — Aligned"
         : state.screen === "library"
-          ? "Question Library — Are We Compatible?"
-          : "Are We Compatible?";
+          ? "Question Library — Aligned"
+          : "Aligned — Discover How Well You Align";
 
       if (state.screen === "question") renderQuestion();
       else if (state.screen === "intermission") renderIntermission();
@@ -10653,7 +10672,7 @@ var qrcode = function() {
         <section class="screen setup-screen" aria-labelledby="setup-title">
           <div class="setup-hero">
             <div>
-              <p class="eyebrow">Your questions. Your comfort zone.</p>
+              <p class="eyebrow">Discover how well you align.</p>
               <h1 id="setup-title">How well do we <span class="accent-text">align?</span></h1>
               <p class="lede">Take turns, lock your answers, then discover the little gaps and delightful matches together.</p>
             </div>
@@ -10791,7 +10810,7 @@ var qrcode = function() {
                 <button class="data-tool" id="import-data" type="button"><span aria-hidden="true">↑</span>Import backup</button>
                 <button class="data-tool danger" id="reset-game" type="button"><span aria-hidden="true">↺</span>Reset everything</button>
               </div>
-              <input id="import-file" type="file" accept="application/json,.json,.awc" hidden>
+              <input id="import-file" type="file" accept="application/json,.json,.aligned,.awc" hidden>
               <p class="data-status" id="data-status" role="status"></p>
             </div>
             <p class="error" id="setup-error" role="alert"></p>

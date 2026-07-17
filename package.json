@@ -1,8 +1,8 @@
 {
-  "name": "are-we-compatible",
+  "name": "aligned",
   "version": "1.0.0",
   "private": true,
-  "description": "A private, playful relationship compatibility game for one device or two nearby phones.",
+  "description": "A two-player compatibility game for meaningful, playful, and honest conversations.",
   "type": "module",
   "scripts": {
     "start": "node scripts/serve.mjs",

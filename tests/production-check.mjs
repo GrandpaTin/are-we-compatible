@@ -32,17 +32,36 @@ assert(questions.filter((question) => question.type === "slider").length > quest
 const qrContext = vm.createContext({});
 vm.runInContext(scripts[0], qrContext);
 const qr = qrContext.qrcode(0, "M");
-qr.addData("https://example.test/are-we-compatible/#pair=production-check");
+qr.addData("https://example.test/aligned/#pair=production-check");
 qr.make();
 assert(qr.createSvgTag().includes("<svg"), "Bundled QR generation must produce an SVG");
 
 const backupFunctionMatch = scripts[1].match(/function backupToState\(payload\) \{[\s\S]*?\n    \}\n\n    function exportBackup/);
 assert(backupFunctionMatch, "Could not locate the backup import parser");
-const backupToState = vm.runInNewContext(`(${backupFunctionMatch[0].replace(/\n\n    function exportBackup$/, "")})`);
+const backupToState = vm.runInNewContext(`(${backupFunctionMatch[0].replace(/\n\n    function exportBackup$/, "")})`, {
+  BACKUP_APP_NAMES: new Set(["Aligned", "Are We Compatible?"])
+});
 const importedState = backupToState(importFixture);
 assert.deepEqual(Array.from(importedState.names), ["Casey", "Riley"], "Backup import must restore both player names");
 assert.equal(importedState.questionMode, "sliders-only", "Backup import must restore round settings");
 assert.deepEqual(Array.from(importedState.favoriteQuestionIds), ["int_1"], "Backup import must restore library preferences");
+const legacyImportedState = backupToState({ ...importFixture, app: "Are We Compatible?" });
+assert.deepEqual(Array.from(legacyImportedState.names), ["Casey", "Riley"], "Legacy branded backups must remain importable");
+
+const storedStateFunctionMatch = scripts[1].match(/function storedStateJSON\(\) \{[\s\S]*?\n    \}\n\n    function loadState/);
+assert(storedStateFunctionMatch, "Could not locate the storage migration helper");
+const legacyRawState = JSON.stringify({ version: 2, names: ["Morgan", "Quinn"] });
+const storageValues = new Map([["are-we-compatible-state-v1", legacyRawState]]);
+const storedStateJSON = vm.runInNewContext(`(${storedStateFunctionMatch[0].replace(/\n\n    function loadState$/, "")})`, {
+  STORAGE_KEY: "aligned-state-v1",
+  LEGACY_STORAGE_KEYS: ["are-we-compatible-state-v1"],
+  localStorage: {
+    getItem(key) { return storageValues.get(key) ?? null; },
+    setItem(key, value) { storageValues.set(key, value); }
+  }
+});
+assert.equal(storedStateJSON(), legacyRawState, "Legacy browser state must be returned during migration");
+assert.equal(storageValues.get("aligned-state-v1"), legacyRawState, "Legacy browser state must be copied to the Aligned key");
 
 const requiredFiles = ["index.html", "manifest.webmanifest", "sw.js", "icon-192.png", "icon-512.png", "og-image.jpg", "README.md", "LICENSE", ".nojekyll", "worker/src/index.js", "worker/wrangler.jsonc"];
 requiredFiles.forEach((file) => assert(existsSync(resolve(root, file)), `Missing required file: ${file}`));
@@ -52,7 +71,7 @@ for (const icon of manifest.icons) {
 }
 assert.equal(manifest.scope, "./", "Manifest scope must support a GitHub Pages repository subfolder");
 assert(manifest.start_url.startsWith("./"), "Manifest start URL must be relative");
-assert.equal(importFixture.app, "Are We Compatible?", "Import fixture must target this application");
+assert.equal(importFixture.app, "Aligned", "Import fixture must target this application");
 assert.equal(importFixture.formatVersion, 2, "Import fixture must exercise the current backup format");
 
 const unsafeReferences = [/[A-Za-z]:\\\\/g, /(?:href|src)=["']\/(?!\/)/gi, /localhost(?::\d+)?/gi];
@@ -65,7 +84,16 @@ for (const file of [html, serviceWorker, JSON.stringify(manifest)]) {
 assert(html.includes('lang="en"'), "The document must declare its language");
 assert(html.includes('name="viewport"'), "The document must include a responsive viewport");
 assert(html.includes('name="description"'), "The document must include a description");
+assert(html.includes('name="application-name" content="Aligned"'), "The document must expose the Aligned application name");
+assert(html.includes('<title>Aligned — Discover How Well You Align</title>'), "The default document title must use the complete Aligned brand line");
 assert(html.includes('property="og:image"'), "The document must include social sharing metadata");
+assert.equal(manifest.name, "Aligned", "The installed PWA must use the Aligned product name");
+assert.equal(manifest.short_name, "Aligned", "The installed PWA short name must use the Aligned product name");
+assert(html.includes('const STORAGE_KEY = "aligned-state-v1"'), "New saves must use the Aligned storage key");
+assert(html.includes('const LEGACY_STORAGE_KEYS = ["are-we-compatible-state-v1"]'), "Existing browser data must have an explicit migration path");
+assert(html.includes('[STORAGE_KEY, ...LEGACY_STORAGE_KEYS].forEach'), "A full reset must clear both current and legacy storage keys");
+assert(html.includes('aligned-backup-${date}.json'), "Readable exports must use the Aligned filename");
+assert(html.includes('aligned-private-${new Date().toISOString().slice(0, 10)}.aligned'), "Encrypted exports must use the Aligned filename and extension");
 assert(html.includes("backface-visibility: hidden"), "Reveal cards must preserve the 3D flip implementation");
 assert(/\.alignment-dashboard\s*\{[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\)/.test(html), "Desktop reveal summaries must use a non-overlapping full-width layout");
 assert(html.includes(".alignment-dashboard .dual-score-dashboard .overall-alignment"), "Desktop score cards must retain dedicated layout containment");

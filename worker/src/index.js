@@ -75,7 +75,7 @@ export default {
     const url = new URL(request.url);
     const cors = corsHeaders(request, env);
 
-    if (url.pathname === "/health" && request.method === "GET") return json({ ok: true, service: "are-we-compatible-signaling" });
+    if (url.pathname === "/health" && request.method === "GET") return json({ ok: true, service: "aligned-signaling" });
     if (request.method === "OPTIONS") {
       return isAllowedRequest(request, env) ? new Response(null, { status: 204, headers: cors }) : json({ error: "Origin not allowed" }, 403);
     }

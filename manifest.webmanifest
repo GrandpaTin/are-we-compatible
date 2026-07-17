@@ -1,8 +1,8 @@
 {
-  "name": "How Well Do We Align?",
-  "short_name": "We Align",
+  "name": "Aligned",
+  "short_name": "Aligned",
   "id": "./",
-  "description": "A private local conversation game for couples, with pass-and-play and direct two-phone modes.",
+  "description": "A two-player compatibility game for meaningful, playful, and honest conversations.",
   "lang": "en",
   "start_url": "./",
   "scope": "./",

@@ -1,4 +1,4 @@
-# One-scan pairing service
+# Aligned one-scan pairing service
 
 This Cloudflare Worker provides short-lived WebSocket signaling rooms for the two-phone game. It exchanges WebRTC connection metadata only. Game questions and answers continue over the encrypted WebRTC data channel and are not stored by this service.
 

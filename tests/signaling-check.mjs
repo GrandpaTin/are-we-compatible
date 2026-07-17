@@ -40,6 +40,7 @@ const call = (path, options = {}) => signalingWorker.fetch(new Request(`https://
 
 const health = await call("/health");
 assert.equal(health.status, 200, "Signaling health endpoint must respond");
+assert.equal((await health.json()).service, "aligned-signaling", "Signaling health metadata must use the current product name");
 
 const blocked = await signalingWorker.fetch(new Request("https://signal.example/api/rooms", {
   method: "POST",
