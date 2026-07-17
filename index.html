@@ -1817,6 +1817,30 @@
       -webkit-backface-visibility: hidden;
     }
 
+    .card-face::before {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      content: "";
+      pointer-events: none;
+      opacity: var(--holo-opacity, 0);
+      background: linear-gradient(
+        115deg,
+        transparent 15%,
+        rgba(255, 255, 255, 0.25) 25%,
+        rgba(96, 165, 250, 0.35) 35%,
+        rgba(251, 113, 133, 0.35) 45%,
+        rgba(167, 139, 250, 0.35) 55%,
+        rgba(251, 191, 36, 0.35) 65%,
+        rgba(255, 255, 255, 0.25) 75%,
+        transparent 85%
+      );
+      background-size: 250% 250%;
+      background-position: var(--holo-x, 50%) var(--holo-y, 50%);
+      mix-blend-mode: color-dodge;
+      transition: opacity 250ms ease;
+    }
+
     .card-front {
       display: flex;
       flex-direction: column;
@@ -5434,10 +5458,16 @@
         <span class="brand-mark" aria-hidden="true">♡</span>
         <span>Aligned</span>
       </div>
-      <button class="home-btn" id="home-button" type="button" hidden>
-        <span class="home-icon" aria-hidden="true">⌂</span>
-        <span>Home</span>
-      </button>
+      <div class="topbar-actions" style="display:flex;gap:8px">
+        <button class="home-btn" id="ambient-toggle" type="button" aria-label="Toggle ambient background soundscape">
+          <span class="home-icon" aria-hidden="true">♫</span>
+          <span id="ambient-toggle-label">Music Off</span>
+        </button>
+        <button class="home-btn" id="home-button" type="button" hidden>
+          <span class="home-icon" aria-hidden="true">⌂</span>
+          <span>Home</span>
+        </button>
+      </div>
     </header>
     <div id="app" aria-live="polite"></div>
   </main>
@@ -8168,6 +8198,7 @@ var qrcode = function() {
         soundEnabled: true,
         soundTheme: "cute",
         soundVolume: 0.7,
+        ambientMusicEnabled: false,
         hapticsEnabled: true,
         visualTheme: "midnight",
         textSize: "normal",
@@ -8368,6 +8399,7 @@ var qrcode = function() {
         if (!INTENSITY_OPTIONS.some((option) => option.id === restored.questionIntensity)) restored.questionIntensity = "curious";
         if (!["cute", "dreamy", "arcade"].includes(restored.soundTheme)) restored.soundTheme = "cute";
         restored.soundVolume = Math.max(0, Math.min(1, Number(restored.soundVolume) || 0.7));
+        restored.ambientMusicEnabled = restored.ambientMusicEnabled === true;
         restored.hapticsEnabled = restored.hapticsEnabled !== false;
         if (!["midnight", "sunset", "cosmic", "pastel"].includes(restored.visualTheme)) restored.visualTheme = "midnight";
         if (!["small", "normal", "large"].includes(restored.textSize)) restored.textSize = "normal";
@@ -8396,6 +8428,7 @@ var qrcode = function() {
             soundEnabled: restored.soundEnabled,
             soundTheme: restored.soundTheme,
             soundVolume: restored.soundVolume,
+            ambientMusicEnabled: restored.ambientMusicEnabled,
             hapticsEnabled: restored.hapticsEnabled,
             visualTheme: restored.visualTheme,
             textSize: restored.textSize,
@@ -8881,6 +8914,7 @@ var qrcode = function() {
         soundEnabled: state.soundEnabled,
         soundTheme: state.soundTheme,
         soundVolume: state.soundVolume,
+        ambientMusicEnabled: state.ambientMusicEnabled,
         hapticsEnabled: state.hapticsEnabled,
         visualTheme: state.visualTheme,
         textSize: state.textSize,
@@ -8919,6 +8953,7 @@ var qrcode = function() {
           soundEnabled: state.soundEnabled,
           soundTheme: state.soundTheme,
           soundVolume: state.soundVolume,
+          ambientMusicEnabled: state.ambientMusicEnabled,
           hapticsEnabled: state.hapticsEnabled,
           visualTheme: state.visualTheme,
           textSize: state.textSize,
@@ -8975,6 +9010,7 @@ var qrcode = function() {
           soundEnabled: payload.settings?.soundEnabled,
           soundTheme: payload.settings?.soundTheme,
           soundVolume: payload.settings?.soundVolume,
+          ambientMusicEnabled: payload.settings?.ambientMusicEnabled === true,
           hapticsEnabled: payload.settings?.hapticsEnabled,
           visualTheme: payload.settings?.visualTheme,
           textSize: payload.settings?.textSize,
@@ -9154,6 +9190,131 @@ var qrcode = function() {
       window.setTimeout(() => toast.remove(), 3400);
     }
 
+    let ambientSoundscape = null;
+
+    class ProceduralAmbient {
+      constructor() {
+        this.ctx = null;
+        this.oscillators = [];
+        this.gainNodes = [];
+        this.filter = null;
+        this.isPlaying = false;
+        this.lfo = null;
+        this.lfoGain = null;
+        this.masterGain = null;
+      }
+
+      init() {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return;
+        this.ctx = new AudioContextClass();
+      }
+
+      start() {
+        if (this.isPlaying) return;
+        if (!this.ctx) this.init();
+        if (!this.ctx) return;
+
+        if (this.ctx.state === "suspended") {
+          this.ctx.resume();
+        }
+
+        this.isPlaying = true;
+        const freqs = [87.31, 130.81, 164.81, 196.00, 220.00, 261.63];
+        
+        this.filter = this.ctx.createBiquadFilter();
+        this.filter.type = "lowpass";
+        this.filter.frequency.setValueAtTime(450, this.ctx.currentTime);
+        this.filter.Q.setValueAtTime(1.5, this.ctx.currentTime);
+        
+        this.masterGain = this.ctx.createGain();
+        this.masterGain.gain.setValueAtTime(0.0001, this.ctx.currentTime);
+        this.masterGain.gain.linearRampToValueAtTime(state.soundVolume * 0.15, this.ctx.currentTime + 3.0);
+
+        this.filter.connect(this.masterGain);
+        this.masterGain.connect(this.ctx.destination);
+
+        this.lfo = this.ctx.createOscillator();
+        this.lfo.type = "sine";
+        this.lfo.frequency.setValueAtTime(0.08, this.ctx.currentTime);
+        
+        this.lfoGain = this.ctx.createGain();
+        this.lfoGain.gain.setValueAtTime(150, this.ctx.currentTime);
+        
+        this.lfo.connect(this.lfoGain);
+        this.lfoGain.connect(this.filter.frequency);
+        this.lfo.start();
+
+        freqs.forEach((freq, index) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+          osc.detune.setValueAtTime((index % 2 === 0 ? 4 : -4) + (Math.random() - 0.5) * 2, this.ctx.currentTime);
+          gain.gain.setValueAtTime(0.02, this.ctx.currentTime);
+          
+          const voiceLfo = this.ctx.createOscillator();
+          voiceLfo.type = "sine";
+          voiceLfo.frequency.setValueAtTime(0.05 + index * 0.015, this.ctx.currentTime);
+          
+          const voiceLfoGain = this.ctx.createGain();
+          voiceLfoGain.gain.setValueAtTime(0.015, this.ctx.currentTime);
+          
+          voiceLfo.connect(voiceLfoGain);
+          voiceLfoGain.connect(gain.gain);
+          
+          voiceLfo.start();
+          
+          osc.connect(gain);
+          gain.connect(this.filter);
+          
+          osc.start();
+          
+          this.oscillators.push(osc);
+          this.oscillators.push(voiceLfo);
+          this.gainNodes.push(gain);
+          this.gainNodes.push(voiceLfoGain);
+        });
+      }
+
+      stop() {
+        if (!this.isPlaying) return;
+        this.isPlaying = false;
+        const now = this.ctx.currentTime;
+        if (this.masterGain) {
+          this.masterGain.gain.setValueAtTime(this.masterGain.gain.value, now);
+          this.masterGain.gain.exponentialRampToValueAtTime(0.0001, now + 1.5);
+        }
+        
+        const oscs = this.oscillators;
+        this.oscillators = [];
+        this.gainNodes = [];
+        this.filter = null;
+        
+        setTimeout(() => {
+          if (this.isPlaying) return;
+          oscs.forEach(osc => { try { osc.stop(); } catch {} });
+        }, 1600);
+      }
+
+      updateVolume() {
+        if (this.masterGain && this.ctx) {
+          const now = this.ctx.currentTime;
+          this.masterGain.gain.setValueAtTime(this.masterGain.gain.value, now);
+          this.masterGain.gain.linearRampToValueAtTime(state.soundVolume * 0.15, now + 0.5);
+        }
+      }
+    }
+
+    ambientSoundscape = new ProceduralAmbient();
+
+    function requestGyroPermission() {
+      if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") {
+        DeviceOrientationEvent.requestPermission().catch(() => {});
+      }
+    }
+
     function saveState() {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -9173,6 +9334,22 @@ var qrcode = function() {
         cosmic: "#04010f",
         pastel: "#fff8f6"
       }[state.visualTheme] || "#0f172a");
+
+      if (state.ambientMusicEnabled) {
+        ambientSoundscape.start();
+        ambientSoundscape.updateVolume();
+      } else {
+        ambientSoundscape.stop();
+      }
+
+      const btn = document.getElementById("ambient-toggle");
+      const label = document.getElementById("ambient-toggle-label");
+      if (btn && label) {
+        btn.classList.toggle("active", state.ambientMusicEnabled);
+        label.textContent = state.ambientMusicEnabled ? "Music On" : "Music Off";
+        btn.style.borderColor = state.ambientMusicEnabled ? "var(--coral)" : "";
+        btn.style.background = state.ambientMusicEnabled ? "rgba(251, 113, 133, 0.12)" : "";
+      }
     }
 
     function pulseHaptic(kind = "tap") {
@@ -10624,6 +10801,7 @@ var qrcode = function() {
             <article class="settings-card">
               <h3>Sound & touch</h3><p>Fine-tune the playful feedback.</p>
               <div class="setting-row"><span>Sounds</span><input id="settings-sound" type="checkbox" ${state.soundEnabled ? "checked" : ""}></div>
+              <div class="setting-row"><span>Ambient music</span><input id="settings-ambient" type="checkbox" ${state.ambientMusicEnabled ? "checked" : ""}></div>
               <div class="setting-row"><label for="sound-theme">Sound style</label><select class="custom-select" id="sound-theme"><option value="cute" ${state.soundTheme === "cute" ? "selected" : ""}>Cute chimes</option><option value="dreamy" ${state.soundTheme === "dreamy" ? "selected" : ""}>Dreamy bells</option><option value="arcade" ${state.soundTheme === "arcade" ? "selected" : ""}>Playful arcade</option></select></div>
               <div class="setting-row"><label for="sound-volume">Volume</label><input id="sound-volume" type="range" min="0" max="1" step="0.05" value="${state.soundVolume}"></div>
               <div class="setting-row"><span>Phone vibration</span><input id="settings-haptics" type="checkbox" ${state.hapticsEnabled ? "checked" : ""}></div>
@@ -10653,8 +10831,20 @@ var qrcode = function() {
         state.visualTheme = input.value; saveState(); applyPreferences(); playSound("tap");
       }));
       document.getElementById("settings-sound").addEventListener("change", (event) => { state.soundEnabled = event.currentTarget.checked; saveState(); });
+      document.getElementById("settings-ambient").addEventListener("change", (event) => {
+        requestGyroPermission();
+        state.ambientMusicEnabled = event.currentTarget.checked;
+        saveState();
+        applyPreferences();
+      });
       document.getElementById("sound-theme").addEventListener("change", (event) => { state.soundTheme = event.currentTarget.value; saveState(); playSound("unlock"); });
-      document.getElementById("sound-volume").addEventListener("input", (event) => { state.soundVolume = Number(event.currentTarget.value); saveState(); });
+      document.getElementById("sound-volume").addEventListener("input", (event) => {
+        state.soundVolume = Number(event.currentTarget.value);
+        saveState();
+        if (state.ambientMusicEnabled) {
+          ambientSoundscape.updateVolume();
+        }
+      });
       document.getElementById("settings-haptics").addEventListener("change", (event) => { state.hapticsEnabled = event.currentTarget.checked; saveState(); pulseHaptic("tap"); });
       document.getElementById("text-size").addEventListener("change", (event) => { state.textSize = event.currentTarget.value; saveState(); applyPreferences(); });
       document.getElementById("high-contrast").addEventListener("change", (event) => { state.highContrast = event.currentTarget.checked; saveState(); applyPreferences(); });
@@ -11903,6 +12093,65 @@ var qrcode = function() {
       prepareNearbyJoin(launchRoomId, launchJoinToken);
       return true;
     }
+
+    document.getElementById("ambient-toggle")?.addEventListener("click", () => {
+      requestGyroPermission();
+      state.ambientMusicEnabled = !state.ambientMusicEnabled;
+      saveState();
+      playSound("tap");
+      applyPreferences();
+    });
+
+    document.addEventListener("mousemove", (event) => {
+      const card = event.target.closest(".card-face");
+      if (!card || state.reducedMotion) return;
+      const rect = card.getBoundingClientRect();
+      const x = ((event.clientX - rect.left) / rect.width) * 100;
+      const y = ((event.clientY - rect.top) / rect.height) * 100;
+      card.style.setProperty("--holo-x", `${x}%`);
+      card.style.setProperty("--holo-y", `${y}%`);
+      card.style.setProperty("--holo-opacity", "0.75");
+    }, { passive: true });
+
+    document.addEventListener("mouseout", (event) => {
+      const card = event.target.closest(".card-face");
+      if (card) {
+        card.style.setProperty("--holo-opacity", "0");
+      }
+    }, { passive: true });
+
+    document.addEventListener("touchmove", (event) => {
+      if (!event.touches.length || state.reducedMotion) return;
+      const touch = event.touches[0];
+      const card = document.elementFromPoint(touch.clientX, touch.clientY)?.closest(".card-face");
+      if (!card) return;
+      const rect = card.getBoundingClientRect();
+      const x = ((touch.clientX - rect.left) / rect.width) * 100;
+      const y = ((touch.clientY - rect.top) / rect.height) * 100;
+      card.style.setProperty("--holo-x", `${x}%`);
+      card.style.setProperty("--holo-y", `${y}%`);
+      card.style.setProperty("--holo-opacity", "0.75");
+    }, { passive: true });
+
+    document.addEventListener("touchend", () => {
+      document.querySelectorAll(".card-face").forEach((card) => {
+        card.style.setProperty("--holo-opacity", "0");
+      });
+    }, { passive: true });
+
+    window.addEventListener("deviceorientation", (event) => {
+      if (state.reducedMotion) return;
+      const beta = event.beta;
+      const gamma = event.gamma;
+      if (beta === null || gamma === null) return;
+      const x = ((gamma + 45) / 90) * 100;
+      const y = ((beta + 45) / 90) * 100;
+      document.querySelectorAll(".card-face").forEach((card) => {
+        card.style.setProperty("--holo-x", `${x}%`);
+        card.style.setProperty("--holo-y", `${y}%`);
+        card.style.setProperty("--holo-opacity", "0.45");
+      });
+    }, { passive: true });
 
     window.addEventListener("hashchange", handleNearbyJoinLaunch);
     window.addEventListener("pageshow", handleNearbyJoinLaunch);
