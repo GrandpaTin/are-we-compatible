@@ -44,7 +44,7 @@ assert.deepEqual(Array.from(importedState.names), ["Casey", "Riley"], "Backup im
 assert.equal(importedState.questionMode, "sliders-only", "Backup import must restore round settings");
 assert.deepEqual(Array.from(importedState.favoriteQuestionIds), ["int_1"], "Backup import must restore library preferences");
 
-const requiredFiles = ["index.html", "manifest.webmanifest", "sw.js", "icon-192.png", "icon-512.png", "og-image.jpg", "README.md", "LICENSE", ".nojekyll"];
+const requiredFiles = ["index.html", "manifest.webmanifest", "sw.js", "icon-192.png", "icon-512.png", "og-image.jpg", "README.md", "LICENSE", ".nojekyll", "worker/src/index.js", "worker/wrangler.jsonc"];
 requiredFiles.forEach((file) => assert(existsSync(resolve(root, file)), `Missing required file: ${file}`));
 for (const icon of manifest.icons) {
   assert(icon.src.startsWith("./"), `Manifest icon path must be relative: ${icon.src}`);
@@ -72,6 +72,11 @@ assert(html.includes('aria-hidden="${!isFlipped}"'), "Unrevealed answer faces mu
 assert(html.includes('id="answer-card-${escapedQuestionId}"'), "Reveal buttons must control identified answer regions");
 assert(html.includes("unanswered questions are always chosen first"), "The freshness policy must remain visible to players");
 assert(html.includes("const unanswered = questions.filter"), "Question selection must continue prioritizing unanswered prompts");
+assert(html.includes('launchHashParams.get("join")'), "Two-phone mode must accept the one-scan room link");
+assert(html.includes("There is no second QR"), "The pairing interface must explain the one-scan flow");
+assert(!html.includes("Scan response QR"), "The retired second-QR step must not return");
+assert(html.includes('https://are-we-compatible-signal.bdaytin.workers.dev'), "Production signaling endpoint must be configured");
+assert(!html.includes("__SIGNALING_SERVICE_URL__"), "A signaling placeholder must never reach production");
 
 const sliderCount = questions.filter((question) => question.type === "slider").length;
 const textCount = questions.length - sliderCount;

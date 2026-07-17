@@ -6,7 +6,11 @@
   "type": "module",
   "scripts": {
     "start": "node scripts/serve.mjs",
-    "test": "node tests/production-check.mjs"
+    "test": "node tests/production-check.mjs && node tests/signaling-check.mjs",
+    "deploy:signal": "wrangler deploy --config worker/wrangler.jsonc"
+  },
+  "devDependencies": {
+    "wrangler": "^4.102.0"
   },
   "license": "MIT"
 }

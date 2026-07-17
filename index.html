@@ -8403,9 +8403,13 @@ var qrcode = function() {
     let deferredInstallPrompt = null;
     let nearbyPeerConnection = null;
     let nearbyDataChannel = null;
-    let nearbyRuntime = { role: null, status: "idle", offerCode: "", answerCode: "", pendingOffer: "", remotePayload: null, localComplete: false };
-    const NEARBY_HANDOFF_KEY = "we-align-nearby-answer-handoff";
-    const nearbyPairingChannel = "BroadcastChannel" in window ? new BroadcastChannel("we-align-nearby-pairing") : null;
+    let nearbySignalingSocket = null;
+    let nearbyHeartbeatTimer = 0;
+    let nearbyReconnectTimer = 0;
+    let nearbyIceServers = [];
+    let nearbyPendingCandidates = [];
+    let nearbyRuntime = { role: null, status: "idle", roomId: "", hostToken: "", joinToken: "", joinURL: "", remotePayload: null, localComplete: false, reconnectAttempts: 0, negotiating: false };
+    const SIGNALING_SERVICE_URL = new URLSearchParams(location.search).get("signal") || "https://are-we-compatible-signal.bdaytin.workers.dev";
 
     window.addEventListener("beforeinstallprompt", (event) => {
       event.preventDefault();
@@ -8424,22 +8428,8 @@ var qrcode = function() {
       if (status) status.textContent = choice.outcome === "accepted" ? "Installation started." : "You can install later from this screen.";
     }
 
-    function encodePairingDescription(description) {
-      return bytesToBase64(new TextEncoder().encode(JSON.stringify(description))).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
-    }
-
-    function decodePairingDescription(code) {
-      const normalized = String(code || "").trim().replaceAll("-", "+").replaceAll("_", "/");
-      const padded = normalized + "=".repeat((4 - normalized.length % 4) % 4);
-      return JSON.parse(new TextDecoder().decode(base64ToBytes(padded)));
-    }
-
-    function pairingOfferURL(offerCode) {
-      return `${location.href.split("#")[0]}#nearby=${encodeURIComponent(offerCode)}`;
-    }
-
-    function pairingAnswerQRValue(answerCode) {
-      return `${location.href.split("#")[0]}#nearby-answer=${encodeURIComponent(answerCode)}`;
+    function pairingJoinURL(roomId, joinToken) {
+      return `${location.href.split("#")[0]}#join=${encodeURIComponent(`${roomId}.${joinToken}`)}`;
     }
 
     function renderPairingQR(value, accessibleLabel) {
@@ -8454,190 +8444,169 @@ var qrcode = function() {
       }
     }
 
-    function extractNearbyOfferFromQR(rawValue) {
-      const raw = String(rawValue || "").trim();
-      if (raw.startsWith("wealign-offer:")) return raw.slice(14);
-      try {
-        const scannedURL = new URL(raw, location.href);
-        return new URLSearchParams(scannedURL.hash.slice(1)).get("nearby") || "";
-      } catch {}
-      return "";
+    async function signalingRequest(path, options = {}) {
+      let endpoint;
+      try { endpoint = new URL(SIGNALING_SERVICE_URL); } catch { throw new Error("The one-scan connection service is not configured yet."); }
+      const secureEndpoint = endpoint.protocol === "https:" || (location.protocol === "http:" && endpoint.hostname === location.hostname);
+      if (!secureEndpoint) throw new Error("The one-scan connection service is not configured securely.");
+      const response = await fetch(`${SIGNALING_SERVICE_URL}${path}`, {
+        ...options,
+        headers: { "content-type": "application/json", ...(options.headers || {}) }
+      });
+      let payload = {};
+      try { payload = await response.json(); } catch {}
+      if (!response.ok) throw new Error(payload.error || "The private connection service is unavailable.");
+      return payload;
     }
 
-    function extractNearbyAnswerFromQR(rawValue) {
-      const raw = String(rawValue || "").trim();
-      if (raw.startsWith("wealign-answer:")) return raw.slice(15);
-      try {
-        const scannedURL = new URL(raw, location.href);
-        return new URLSearchParams(scannedURL.hash.slice(1)).get("nearby-answer") || "";
-      } catch {}
-      return "";
-    }
-
-    function receiveNearbyAnswerHandoff(answerCode) {
-      if (nearbyRuntime.role !== "host" || !["offer-ready", "connecting"].includes(nearbyRuntime.status)) return false;
-      try { decodePairingDescription(answerCode); } catch { return false; }
-      applyNearbyAnswer(answerCode);
-      showToast("Response received from the QR scan. Connecting phones...");
+    function sendNearbySignal(payload) {
+      if (nearbySignalingSocket?.readyState !== WebSocket.OPEN) return false;
+      nearbySignalingSocket.send(JSON.stringify(payload));
       return true;
     }
 
-    nearbyPairingChannel?.addEventListener("message", (event) => {
-      if (event.data?.type === "nearby-answer") receiveNearbyAnswerHandoff(event.data.answerCode);
-    });
-
-    window.addEventListener("storage", (event) => {
-      if (event.key !== NEARBY_HANDOFF_KEY || !event.newValue) return;
-      try { receiveNearbyAnswerHandoff(JSON.parse(event.newValue).answerCode); } catch {}
-    });
-
-    function renderNearbyAnswerHandoff(answerCode) {
-      try { decodePairingDescription(answerCode); } catch {
-        app.innerHTML = `<section class="screen nearby-screen"><div class="nearby-card" style="text-align:center"><p class="eyebrow">Pairing problem</p><h2>That response QR was not valid.</h2><p class="lede">Return to the two-phone setup and create a new connection.</p></div></section>`;
+    async function addNearbyCandidate(candidate) {
+      if (!candidate) return;
+      if (!nearbyPeerConnection?.remoteDescription) {
+        nearbyPendingCandidates.push(candidate);
         return;
       }
-      const payload = { type: "nearby-answer", answerCode, sentAt: Date.now() };
-      nearbyPairingChannel?.postMessage(payload);
-      try { localStorage.setItem(NEARBY_HANDOFF_KEY, JSON.stringify(payload)); } catch {}
-      window.setTimeout(() => nearbyPairingChannel?.postMessage(payload), 500);
-      app.innerHTML = `<section class="screen nearby-screen"><div class="nearby-card" style="text-align:center"><div class="celebration-orb" aria-hidden="true">✓</div><p class="eyebrow">Response delivered</p><h2>Return to the <span class="accent-text">host screen.</span></h2><p class="lede">The original host tab is connecting the phones. You can close this scanner tab after the host shows “Phones connected.”</p></div></section>`;
+      try { await nearbyPeerConnection.addIceCandidate(candidate); } catch {}
     }
 
-    async function openPairingScanner({ title, copy, validate }) {
-      if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia || !("BarcodeDetector" in window)) {
-        showToast("Camera QR scanning is not available here. Use the phone camera for the host QR, or use Copy code as a fallback.");
-        return;
+    async function flushNearbyCandidates() {
+      const candidates = nearbyPendingCandidates.splice(0);
+      for (const candidate of candidates) {
+        try { await nearbyPeerConnection?.addIceCandidate(candidate); } catch {}
       }
+    }
 
-      let supportedFormats = [];
-      try { supportedFormats = await BarcodeDetector.getSupportedFormats?.() || []; } catch {}
-      if (supportedFormats.length && !supportedFormats.includes("qr_code")) {
-        showToast("This browser cannot scan QR codes in the game. Use Copy code instead.");
-        return;
-      }
-
-      const overlay = document.createElement("div");
-      overlay.className = "modal-backdrop";
-      overlay.innerHTML = `
-        <section class="exit-dialog qr-scanner-dialog" role="dialog" aria-modal="true" aria-labelledby="qr-scanner-title">
-          <p class="eyebrow">Private local pairing</p>
-          <h2 id="qr-scanner-title">${escapeHTML(title)}</h2>
-          <p class="dialog-copy">${escapeHTML(copy)}</p>
-          <div class="qr-camera-wrap"><video id="qr-camera" autoplay muted playsinline></video><span class="qr-camera-frame" aria-hidden="true"></span></div>
-          <p class="qr-scanner-status" id="qr-scanner-status" role="status">Starting the camera...</p>
-          <div class="dialog-actions"><button class="secondary-btn" id="close-qr-scanner" type="button">Cancel scan</button></div>
-        </section>`;
-
-      document.body.appendChild(overlay);
-      const video = overlay.querySelector("#qr-camera");
-      const status = overlay.querySelector("#qr-scanner-status");
-      let stream = null;
-      let frameRequest = 0;
-      let closed = false;
-      let detecting = false;
-      let lastAttempt = 0;
-      let lastRejected = "";
-
-      const close = () => {
-        if (closed) return;
-        closed = true;
-        cancelAnimationFrame(frameRequest);
-        stream?.getTracks().forEach((track) => track.stop());
-        overlay.remove();
-        document.removeEventListener("keydown", onKeyDown);
-      };
-      const onKeyDown = (event) => { if (event.key === "Escape") close(); };
-      overlay.querySelector("#close-qr-scanner").addEventListener("click", close);
-      overlay.addEventListener("click", (event) => { if (event.target === overlay) close(); });
-      document.addEventListener("keydown", onKeyDown);
-
+    async function negotiateNearbyHost({ iceRestart = false } = {}) {
+      if (nearbyRuntime.role !== "host" || nearbyRuntime.negotiating) return;
+      nearbyRuntime.negotiating = true;
       try {
-        const detector = new BarcodeDetector({ formats: ["qr_code"] });
-        stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 1280 } } });
-        video.srcObject = stream;
-        await video.play();
-        status.textContent = "Point the camera at the QR code on the other phone.";
-
-        const scanFrame = async (time) => {
-          if (closed) return;
-          frameRequest = requestAnimationFrame(scanFrame);
-          if (detecting || video.readyState < 2 || time - lastAttempt < 220) return;
-          detecting = true;
-          lastAttempt = time;
-          try {
-            const results = await detector.detect(video);
-            const rawValue = results[0]?.rawValue || "";
-            if (rawValue) {
-              const accepted = await validate(rawValue);
-              if (accepted) {
-                status.textContent = "QR code recognized. Connecting...";
-                pulseHaptic("unlock");
-                playSound("unlock");
-                close();
-                return;
-              }
-              if (rawValue !== lastRejected) {
-                lastRejected = rawValue;
-                status.textContent = "That is not the expected pairing QR code. Try the code from this game.";
-              }
-            }
-          } catch {}
-          detecting = false;
-        };
-        frameRequest = requestAnimationFrame(scanFrame);
+        if (!nearbyPeerConnection || nearbyPeerConnection.connectionState === "closed") {
+          const peer = createNearbyPeer();
+          attachNearbyChannel(peer.createDataChannel("how-well-align-local", { ordered: true }));
+        }
+        nearbyRuntime.status = "connecting";
+        if (state.screen === "nearby") render();
+        const offer = await nearbyPeerConnection.createOffer({ iceRestart });
+        await nearbyPeerConnection.setLocalDescription(offer);
+        sendNearbySignal({ type: "offer", description: nearbyPeerConnection.localDescription });
       } catch {
-        status.textContent = "The camera could not start. Check camera permission, or use Copy code instead.";
+        nearbyRuntime.status = "failed";
+        if (state.screen === "nearby") render();
+      } finally {
+        nearbyRuntime.negotiating = false;
       }
     }
 
-    function scanNearbyOfferQR() {
-      return openPairingScanner({
-        title: "Scan the host QR",
-        copy: "Hold this phone over the QR code shown on the host phone.",
-        validate: async (rawValue) => {
-          const offerCode = extractNearbyOfferFromQR(rawValue);
-          if (!offerCode) return false;
-          try { decodePairingDescription(offerCode); } catch { return false; }
-          await prepareNearbyJoin(offerCode);
-          return true;
+    async function acceptNearbyOffer(description) {
+      if (nearbyRuntime.role !== "join") return;
+      try {
+        if (!nearbyPeerConnection || nearbyPeerConnection.connectionState === "closed") {
+          const peer = createNearbyPeer();
+          peer.addEventListener("datachannel", (event) => attachNearbyChannel(event.channel));
         }
-      });
+        nearbyRuntime.status = "connecting";
+        if (state.screen === "nearby") render();
+        await nearbyPeerConnection.setRemoteDescription(description);
+        await flushNearbyCandidates();
+        await nearbyPeerConnection.setLocalDescription(await nearbyPeerConnection.createAnswer());
+        sendNearbySignal({ type: "answer", description: nearbyPeerConnection.localDescription });
+      } catch {
+        nearbyRuntime.status = "failed";
+        if (state.screen === "nearby") render();
+      }
     }
 
-    function scanNearbyAnswerQR() {
-      return openPairingScanner({
-        title: "Scan the response QR",
-        copy: "Hold the host phone over the response QR shown on the joining phone.",
-        validate: async (rawValue) => {
-          const answerCode = extractNearbyAnswerFromQR(rawValue);
-          if (!answerCode) return false;
-          try { decodePairingDescription(answerCode); } catch { return false; }
-          await applyNearbyAnswer(answerCode);
-          return true;
+    async function handleNearbySignal(payload) {
+      if (payload.type === "socket-ready") {
+        nearbyRuntime.reconnectAttempts = 0;
+        nearbyRuntime.status = nearbyDataChannel?.readyState === "open" ? "connected" : nearbyRuntime.role === "host" ? "room-ready" : "waiting-host";
+        if (state.screen === "nearby") render();
+      } else if (payload.type === "peer-ready") {
+        if (nearbyDataChannel?.readyState === "open") return;
+        if (nearbyRuntime.role === "host") await negotiateNearbyHost();
+        else {
+          nearbyRuntime.status = "waiting-host";
+          if (state.screen === "nearby") render();
         }
-      });
+      } else if (payload.type === "peer-waiting" && nearbyRuntime.status !== "connected") {
+        nearbyRuntime.status = nearbyRuntime.role === "host" ? "room-ready" : "waiting-host";
+        if (state.screen === "nearby") render();
+      } else if (payload.type === "offer") {
+        await acceptNearbyOffer(payload.description);
+      } else if (payload.type === "answer" && nearbyRuntime.role === "host") {
+        await nearbyPeerConnection?.setRemoteDescription(payload.description);
+        await flushNearbyCandidates();
+      } else if (payload.type === "candidate") {
+        await addNearbyCandidate(payload.candidate);
+      }
     }
 
-    function waitForIceGathering(peer) {
-      if (peer.iceGatheringState === "complete") return Promise.resolve();
-      return new Promise((resolve) => {
-        const onChange = () => {
-          if (peer.iceGatheringState === "complete") {
-            peer.removeEventListener("icegatheringstatechange", onChange);
-            resolve();
+    function connectNearbySignaling(role, roomId, token) {
+      return new Promise((resolve, reject) => {
+        const socketURL = new URL(`${SIGNALING_SERVICE_URL}/api/rooms/${encodeURIComponent(roomId)}/socket`);
+        socketURL.protocol = socketURL.protocol === "https:" ? "wss:" : "ws:";
+        socketURL.searchParams.set("role", role);
+        socketURL.searchParams.set("token", token);
+        const socket = new WebSocket(socketURL);
+        nearbySignalingSocket = socket;
+        const openTimeout = window.setTimeout(() => {
+          socket.__manualClose = true;
+          socket.close();
+          reject(new Error("The private connection service took too long to respond."));
+        }, 12000);
+        socket.addEventListener("open", () => {
+          clearTimeout(openTimeout);
+          clearInterval(nearbyHeartbeatTimer);
+          nearbyHeartbeatTimer = window.setInterval(() => sendNearbySignal({ type: "ping" }), 20000);
+          resolve();
+        }, { once: true });
+        socket.addEventListener("message", (event) => {
+          let payload;
+          try { payload = JSON.parse(event.data); } catch { return; }
+          handleNearbySignal(payload);
+        });
+        socket.addEventListener("error", () => {
+          if (socket.readyState !== WebSocket.OPEN) reject(new Error("The private connection service could not be reached."));
+        }, { once: true });
+        socket.addEventListener("close", () => {
+          clearInterval(nearbyHeartbeatTimer);
+          if (socket.__manualClose || socket !== nearbySignalingSocket) return;
+          const connectionWasReady = nearbyDataChannel?.readyState === "open";
+          if (!connectionWasReady) {
+            nearbyRuntime.status = "reconnecting";
+            if (state.screen === "nearby") render();
           }
-        };
-        peer.addEventListener("icegatheringstatechange", onChange);
-        window.setTimeout(resolve, 5000);
+          const attempt = Math.min(nearbyRuntime.reconnectAttempts + 1, 6);
+          nearbyRuntime.reconnectAttempts = attempt;
+          clearTimeout(nearbyReconnectTimer);
+          nearbyReconnectTimer = window.setTimeout(() => connectNearbySignaling(role, roomId, token).catch(() => {}), Math.min(8000, 600 * 2 ** attempt));
+        });
       });
     }
 
     function closeNearbyConnection() {
-      nearbyDataChannel?.close();
+      clearInterval(nearbyHeartbeatTimer);
+      clearTimeout(nearbyReconnectTimer);
+      if (nearbySignalingSocket) {
+        nearbySignalingSocket.__manualClose = true;
+        nearbySignalingSocket.close();
+      }
+      if (nearbyDataChannel) {
+        nearbyDataChannel.__manualClose = true;
+        nearbyDataChannel.close();
+      }
       nearbyPeerConnection?.close();
+      nearbySignalingSocket = null;
       nearbyDataChannel = null;
       nearbyPeerConnection = null;
-      nearbyRuntime = { role: null, status: "idle", offerCode: "", answerCode: "", pendingOffer: "", remotePayload: null, localComplete: false };
+      nearbyIceServers = [];
+      nearbyPendingCandidates = [];
+      nearbyRuntime = { role: null, status: "idle", roomId: "", hostToken: "", joinToken: "", joinURL: "", remotePayload: null, localComplete: false, reconnectAttempts: 0, negotiating: false };
     }
 
     function sendNearbyMessage(payload) {
@@ -8726,20 +8695,43 @@ var qrcode = function() {
       });
       channel.addEventListener("message", handleNearbyMessage);
       channel.addEventListener("close", () => {
+        if (channel.__manualClose) return;
         nearbyRuntime.status = "disconnected";
         showToast("The nearby connection closed. Saved answers remain on this phone.");
+        if (nearbyRuntime.role === "host" && nearbySignalingSocket?.readyState === WebSocket.OPEN) {
+          window.setTimeout(() => {
+            if (nearbyDataChannel === channel && channel.readyState === "closed") {
+              nearbyPeerConnection?.close();
+              nearbyPeerConnection = null;
+              nearbyDataChannel = null;
+              negotiateNearbyHost();
+            }
+          }, 800);
+        }
       });
     }
 
     function createNearbyPeer() {
       if (!window.RTCPeerConnection) throw new Error("This browser does not support nearby browser-to-browser play.");
+      if (nearbyDataChannel) {
+        nearbyDataChannel.__manualClose = true;
+        nearbyDataChannel.close();
+        nearbyDataChannel = null;
+      }
       nearbyPeerConnection?.close();
-      const peer = new RTCPeerConnection({ iceServers: [] });
+      nearbyPendingCandidates = [];
+      const peer = new RTCPeerConnection({ iceServers: nearbyIceServers.length ? nearbyIceServers : [{ urls: "stun:stun.cloudflare.com:3478" }] });
       nearbyPeerConnection = peer;
+      peer.addEventListener("icecandidate", (event) => {
+        if (event.candidate) sendNearbySignal({ type: "candidate", candidate: event.candidate.toJSON?.() || event.candidate });
+      });
       peer.addEventListener("connectionstatechange", () => {
         if (["failed", "disconnected"].includes(peer.connectionState)) {
           nearbyRuntime.status = peer.connectionState;
           if (state.screen === "nearby") render();
+          if (peer.connectionState === "failed" && nearbyRuntime.role === "host" && nearbySignalingSocket?.readyState === WebSocket.OPEN) {
+            window.setTimeout(() => negotiateNearbyHost({ iceRestart: true }), 500);
+          }
         }
       });
       return peer;
@@ -8749,48 +8741,41 @@ var qrcode = function() {
       try {
         closeNearbyConnection();
         nearbyRuntime.role = "host";
-        nearbyRuntime.status = "preparing";
+        nearbyRuntime.status = "creating-room";
         render();
-        const peer = createNearbyPeer();
-        attachNearbyChannel(peer.createDataChannel("how-well-align-local", { ordered: true }));
-        await peer.setLocalDescription(await peer.createOffer());
-        await waitForIceGathering(peer);
-        nearbyRuntime.offerCode = encodePairingDescription(peer.localDescription);
-        nearbyRuntime.status = "offer-ready";
+        const room = await signalingRequest("/api/rooms", { method: "POST", body: "{}" });
+        nearbyIceServers = Array.isArray(room.iceServers) ? room.iceServers : [];
+        nearbyRuntime = {
+          ...nearbyRuntime,
+          role: "host",
+          status: "connecting-service",
+          roomId: room.roomId,
+          hostToken: room.hostToken,
+          joinToken: room.joinToken,
+          joinURL: pairingJoinURL(room.roomId, room.joinToken)
+        };
         render();
+        await connectNearbySignaling("host", room.roomId, room.hostToken);
       } catch (error) {
         nearbyRuntime.status = "failed";
         render(); showToast(error.message || "Nearby pairing could not start.");
       }
     }
 
-    async function prepareNearbyJoin(offerCode) {
+    async function prepareNearbyJoin(roomId, joinToken) {
       try {
         closeNearbyConnection();
-        nearbyRuntime.role = "join";
-        nearbyRuntime.status = "preparing";
+        nearbyRuntime = { ...nearbyRuntime, role: "join", status: "joining", roomId, joinToken };
         render();
-        const peer = createNearbyPeer();
-        peer.addEventListener("datachannel", (event) => attachNearbyChannel(event.channel));
-        await peer.setRemoteDescription(decodePairingDescription(offerCode));
-        await peer.setLocalDescription(await peer.createAnswer());
-        await waitForIceGathering(peer);
-        nearbyRuntime.answerCode = encodePairingDescription(peer.localDescription);
-        nearbyRuntime.status = "answer-ready";
-        render();
-      } catch {
-        nearbyRuntime.status = "join-input";
-        render(); showToast("That pairing code was not valid. Ask the host to create a new one.");
-      }
-    }
-
-    async function applyNearbyAnswer(answerCode) {
-      try {
-        await nearbyPeerConnection.setRemoteDescription(decodePairingDescription(answerCode));
-        nearbyRuntime.status = "connecting";
-        render();
-      } catch {
-        showToast("That response code was not valid.");
+        const room = await signalingRequest(`/api/rooms/${encodeURIComponent(roomId)}/join`, {
+          method: "POST",
+          body: JSON.stringify({ token: joinToken })
+        });
+        nearbyIceServers = Array.isArray(room.iceServers) ? room.iceServers : [];
+        await connectNearbySignaling("join", roomId, joinToken);
+      } catch (error) {
+        nearbyRuntime.status = "failed";
+        render(); showToast(error.message || "That pairing link is no longer valid.");
       }
     }
 
@@ -9815,73 +9800,55 @@ var qrcode = function() {
     function renderNearby() {
       const status = nearbyRuntime.status;
       const initial = status === "idle";
-      const hostOffer = nearbyRuntime.role === "host" && ["offer-ready", "connecting"].includes(status);
-      const joinInput = nearbyRuntime.role === "join" && status === "join-input";
-      const joinAnswer = nearbyRuntime.role === "join" && status === "answer-ready";
+      const hostRoom = nearbyRuntime.role === "host" && nearbyRuntime.joinURL && ["room-ready", "connecting", "reconnecting"].includes(status);
       const connected = status === "connected";
+      const statusCopy = connected
+        ? "Phones connected"
+        : ["creating-room", "connecting-service", "joining"].includes(status)
+          ? "Preparing a secure room…"
+          : status === "waiting-host"
+            ? "Connected to room · waiting for host…"
+            : status === "room-ready"
+              ? "Room ready · waiting for partner…"
+              : status === "connecting"
+                ? "Partner found · connecting automatically…"
+                : status === "reconnecting"
+                  ? "Restoring the connection…"
+                  : status === "failed"
+                    ? "Connection needs another try"
+                    : "Not connected yet";
       app.innerHTML = `
         <section class="screen nearby-screen" aria-labelledby="nearby-title">
           <div class="nearby-card">
-            <p class="eyebrow">Two phones · direct connection</p>
-            <h2 id="nearby-title">Answer privately, <span class="accent-text">reveal together.</span></h2>
-            <p class="lede">Pair two browsers directly on the same Wi-Fi or hotspot. The game does not use an account, signaling server, or cloud answer storage.</p>
-            <span class="connection-pill ${connected ? "connected" : ""}">● ${connected ? "Phones connected" : status === "preparing" ? "Preparing a local connection…" : status === "connecting" ? "Connecting…" : "Not connected yet"}</span>
+            <p class="eyebrow">Two phones · one scan</p>
+            <h2 id="nearby-title">Scan once, <span class="accent-text">connect automatically.</span></h2>
+            <p class="lede">A short-lived private room introduces the phones, then encrypted WebRTC keeps the round between you. No account is required and answers are never stored by the connection service.</p>
+            <span class="connection-pill ${connected ? "connected" : ""}">● ${statusCopy}</span>
             ${initial ? `
-              <div class="nearby-choice-grid">
-                <button class="nearby-choice" id="nearby-host" type="button"><strong>1. Host the round</strong><small>Create the questions and a local pairing code on this phone.</small></button>
-                <button class="nearby-choice" id="nearby-join" type="button"><strong>2. Join the round</strong><small>Paste the host phone’s code and return a response code.</small></button>
-                <button class="nearby-choice" id="scan-host-qr" type="button"><strong>Scan host QR</strong><small>Use this phone’s camera to join without copying a code.</small></button>
+              <div class="nearby-choice-grid" style="grid-template-columns:1fr">
+                <button class="nearby-choice" id="nearby-host" type="button"><strong>♡ Create one-scan room</strong><small>Show one QR. Your partner scans it with the regular camera and both phones connect automatically.</small></button>
               </div>
-              <ol class="nearby-steps"><li>The host creates a QR code.</li><li>The joining phone scans it and displays a response QR.</li><li>The host scans the response QR.</li><li>After connecting, each person answers privately on their own phone.</li></ol>
+              <ol class="nearby-steps"><li>Create the room on this phone.</li><li>Your partner scans the single QR with their regular camera.</li><li>Wait a moment while the phones connect automatically.</li><li>Each person answers privately on their own phone.</li></ol>
             ` : ""}
-            ${hostOffer ? `
-              <h3>Scan this host QR</h3><p class="topic-note">Open the regular camera on the joining phone and scan. The QR contains connection details, never answers.</p>
+            ${hostRoom ? `
+              <h3>One scan and you’re in</h3><p class="topic-note">Open the regular camera on your partner’s phone and scan this QR. Keep this screen open; the connection completes by itself.</p>
               <div class="qr-pairing-panel">
-                ${renderPairingQR(pairingOfferURL(nearbyRuntime.offerCode), "QR code to join this local alignment round")}
-                <div class="qr-pairing-copy"><strong>Scan with the joining phone</strong><span>The game opens automatically with the host connection ready. Keep this host screen open.</span><div class="actions"><button class="primary-btn" id="scan-answer-qr" type="button">Scan response QR</button></div></div>
+                ${renderPairingQR(nearbyRuntime.joinURL, "QR code to join this private alignment round automatically")}
+                <div class="qr-pairing-copy"><strong>Waiting for your partner</strong><span>The link expires after 15 minutes. There is no second QR and nothing to copy back.</span><div class="actions">${navigator.share ? '<button class="secondary-btn" id="share-join-link" type="button">Share join link</button>' : ''}<button class="secondary-btn" id="copy-join-link" data-join-url="${escapeHTML(nearbyRuntime.joinURL)}" type="button">Copy join link</button></div></div>
               </div>
-              <details class="comment-details"><summary>Use a pairing code instead</summary>
-              <textarea class="pairing-code" id="host-pairing-code" readonly>${escapeHTML(nearbyRuntime.offerCode)}</textarea>
-              <div class="actions"><button class="secondary-btn" id="copy-host-code" type="button">Copy host code</button>${navigator.share ? '<button class="secondary-btn" id="share-host-code" type="button">Share pairing link</button>' : ""}</div>
-              <h3 style="margin-top:22px">Paste the response code</h3>
-              <textarea class="pairing-code" id="answer-pairing-code" placeholder="The joining phone creates this code…"></textarea>
-              <div class="actions"><button class="primary-btn" id="apply-answer-code" type="button">Connect phones</button></div>
-              </details>
             ` : ""}
-            ${joinInput ? `
-              <h3>Paste the host code</h3>
-              <textarea class="pairing-code" id="join-offer-code" placeholder="Paste the code from the host phone…">${escapeHTML(nearbyRuntime.pendingOffer)}</textarea>
-              <div class="actions"><button class="primary-btn" id="create-answer-code" type="button">Create response code</button></div>
-            ` : ""}
-            ${joinAnswer ? `
-              <h3>Show this response QR to the host</h3><p class="topic-note">Keep this screen open while the host scans it.</p>
-              <div class="qr-pairing-panel">
-                ${renderPairingQR(pairingAnswerQRValue(nearbyRuntime.answerCode), "Response QR code for the host phone")}
-                <div class="qr-pairing-copy"><strong>Ready for the host phone</strong><span>Scan this with the host phone’s regular camera. You can also return to the host and tap “Scan response QR” for in-app scanning.</span></div>
-              </div>
-              <details class="comment-details"><summary>Use a response code instead</summary>
-              <textarea class="pairing-code" id="join-answer-code" readonly>${escapeHTML(nearbyRuntime.answerCode)}</textarea>
-              <div class="actions"><button class="primary-btn" id="copy-answer-code" type="button">Copy response code</button></div>
-              </details>
-            ` : ""}
+            ${nearbyRuntime.role === "join" && !connected ? `<div class="nearby-auto-join" style="text-align:center;margin-top:24px"><div class="celebration-orb" aria-hidden="true">⌁</div><h3>${status === "failed" ? "This room could not connect" : "You’re joining automatically"}</h3><p class="topic-note">${status === "failed" ? "The room may have expired. Ask the host to create a fresh QR." : "Keep this screen open. No QR needs to be shown back to the host."}</p></div>` : ""}
             ${connected ? nearbyRuntime.role === "host" ? `<p class="topic-note">Connection ready. ${escapeHTML(state.names[0])} answers on this phone; ${escapeHTML(state.names[1])} answers on the other.</p><div class="actions"><button class="primary-btn" id="start-nearby-round" type="button">Start private round</button></div>` : `<p class="topic-note">Connected. Waiting for the host to start the round…</p>` : ""}
             ${!initial && status !== "connected" ? '<button class="text-btn" id="restart-nearby" type="button" style="margin-top:18px">Start pairing over</button>' : ""}
-            <p class="privacy-note" style="margin-top:20px"><span>⌁</span><span>For the most reliable local connection, keep both phones on the same Wi-Fi or one phone’s hotspot and leave this page open during pairing. Private reflections never leave the phone that created them.</span></p>
+            <p class="privacy-note" style="margin-top:20px"><span>⌁</span><span>Direct connections are preferred automatically. If a network blocks them, an encrypted relay keeps the game working. The temporary room handles connection metadata only and expires automatically.</span></p>
           </div>
         </section>`;
 
       document.getElementById("nearby-host")?.addEventListener("click", prepareNearbyHost);
-      document.getElementById("nearby-join")?.addEventListener("click", () => { nearbyRuntime.role = "join"; nearbyRuntime.status = "join-input"; render(); });
-      document.getElementById("scan-host-qr")?.addEventListener("click", scanNearbyOfferQR);
-      document.getElementById("scan-answer-qr")?.addEventListener("click", scanNearbyAnswerQR);
-      document.getElementById("copy-host-code")?.addEventListener("click", () => copyPairingCode(nearbyRuntime.offerCode, "Host code copied."));
-      document.getElementById("share-host-code")?.addEventListener("click", async () => {
-        const url = `${location.href.split("#")[0]}#nearby=${encodeURIComponent(nearbyRuntime.offerCode)}`;
-        try { await navigator.share({ title: "Join our local alignment round", text: "Open this link on the second phone to join directly.", url }); } catch {}
+      document.getElementById("copy-join-link")?.addEventListener("click", () => copyPairingCode(nearbyRuntime.joinURL, "Private join link copied."));
+      document.getElementById("share-join-link")?.addEventListener("click", async () => {
+        try { await navigator.share({ title: "Join our alignment round", text: "Open this private link to connect automatically.", url: nearbyRuntime.joinURL }); } catch {}
       });
-      document.getElementById("apply-answer-code")?.addEventListener("click", () => applyNearbyAnswer(document.getElementById("answer-pairing-code").value));
-      document.getElementById("create-answer-code")?.addEventListener("click", () => prepareNearbyJoin(document.getElementById("join-offer-code").value));
-      document.getElementById("copy-answer-code")?.addEventListener("click", () => copyPairingCode(nearbyRuntime.answerCode, "Response code copied."));
       document.getElementById("restart-nearby")?.addEventListener("click", () => { closeNearbyConnection(); render(); });
       document.getElementById("start-nearby-round")?.addEventListener("click", () => {
         const payload = {
@@ -10684,7 +10651,7 @@ var qrcode = function() {
             <p class="setup-section-title">How are you playing?</p>
             <div class="play-style-grid" aria-label="Play style">
               <button class="play-style-card ${state.playStyle === "pass-and-play" ? "active" : ""}" type="button" data-play-style="pass-and-play"><strong>▣ One device</strong><small>Pass the phone and keep answers locked between turns.</small></button>
-              <button class="play-style-card ${state.playStyle === "nearby" ? "active" : ""}" type="button" data-play-style="nearby"><strong>⌁ Two phones nearby</strong><small>Answer privately over a direct local connection with no cloud account.</small></button>
+              <button class="play-style-card ${state.playStyle === "nearby" ? "active" : ""}" type="button" data-play-style="nearby"><strong>⌁ Two phones · one scan</strong><small>Scan once, connect automatically, and answer privately on separate phones.</small></button>
             </div>
 
             <p class="setup-section-title">Choose a session</p>
@@ -11771,23 +11738,20 @@ var qrcode = function() {
     }
 
     const launchHashParams = new URLSearchParams(location.hash.slice(1));
-    const launchNearbyAnswer = launchHashParams.get("nearby-answer") || "";
-    let launchNearbyOffer = launchHashParams.get("nearby") || "";
-    if (launchNearbyOffer) {
-      nearbyRuntime = { ...nearbyRuntime, role: "join", status: "join-input", pendingOffer: launchNearbyOffer };
+    const launchNearbyRoom = launchHashParams.get("join") || "";
+    const launchRoomParts = launchNearbyRoom.split(".");
+    const launchRoomId = launchRoomParts[0] || "";
+    const launchJoinToken = launchRoomParts.slice(1).join(".");
+    const hasValidNearbyLaunch = /^[A-Za-z0-9_-]{16,40}$/.test(launchRoomId) && /^[A-Za-z0-9_-]{32,80}$/.test(launchJoinToken);
+    if (hasValidNearbyLaunch) {
+      nearbyRuntime = { ...nearbyRuntime, role: "join", status: "joining", roomId: launchRoomId, joinToken: launchJoinToken };
       state.playStyle = "nearby";
       state.screen = "nearby";
       saveState();
       history.replaceState(null, "", location.href.split("#")[0]);
     }
-
-    if (launchNearbyAnswer) {
-      history.replaceState(null, "", location.href.split("#")[0]);
-      renderNearbyAnswerHandoff(launchNearbyAnswer);
-    } else {
-      render();
-      if (launchNearbyOffer) prepareNearbyJoin(launchNearbyOffer);
-    }
+    render();
+    if (hasValidNearbyLaunch) prepareNearbyJoin(launchRoomId, launchJoinToken);
   </script>
 </body>
 </html>

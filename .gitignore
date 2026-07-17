@@ -9,6 +9,11 @@ Desktop.ini
 
 # Local tooling and generated output
 node_modules/
+.pnpm-store/
+.pnpm-home/
+.wrangler-config/
+.wrangler/
+.dev.vars
 coverage/
 dist/
 *.log
