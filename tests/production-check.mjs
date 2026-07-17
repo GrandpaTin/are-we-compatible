@@ -67,6 +67,8 @@ assert(html.includes('name="viewport"'), "The document must include a responsive
 assert(html.includes('name="description"'), "The document must include a description");
 assert(html.includes('property="og:image"'), "The document must include social sharing metadata");
 assert(html.includes("backface-visibility: hidden"), "Reveal cards must preserve the 3D flip implementation");
+assert(/\.alignment-dashboard\s*\{[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\)/.test(html), "Desktop reveal summaries must use a non-overlapping full-width layout");
+assert(html.includes(".alignment-dashboard .dual-score-dashboard .overall-alignment"), "Desktop score cards must retain dedicated layout containment");
 assert(html.includes('class="card-face card-front"'), "Reveal card fronts must be real buttons");
 assert(html.includes('aria-hidden="${!isFlipped}"'), "Unrevealed answer faces must be hidden from assistive technology");
 assert(html.includes('id="answer-card-${escapedQuestionId}"'), "Reveal buttons must control identified answer regions");

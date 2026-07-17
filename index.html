@@ -1451,7 +1451,7 @@
     .alignment-dashboard {
       position: relative;
       display: grid;
-      grid-template-columns: minmax(250px, 0.8fr) minmax(0, 1.5fr);
+      grid-template-columns: minmax(0, 1fr);
       gap: 22px;
       margin-bottom: 24px;
       padding: clamp(20px, 4vw, 30px);
@@ -1589,8 +1589,26 @@
 
     .overall-alignment {
       display: flex;
+      min-width: 0;
       align-items: center;
       gap: 20px;
+    }
+
+    .alignment-dashboard .alignment-summary-copy {
+      min-width: 0;
+    }
+
+    @media (min-width: 701px) {
+      .alignment-dashboard .dual-score-dashboard .overall-alignment {
+        padding: 16px;
+        border: 1px solid rgba(148, 163, 184, 0.12);
+        border-radius: 20px;
+        background: rgba(15, 23, 42, 0.28);
+      }
+
+      .alignment-dashboard .dual-score-dashboard .alignment-ring {
+        --ring-size: 124px;
+      }
     }
 
     .alignment-ring {
