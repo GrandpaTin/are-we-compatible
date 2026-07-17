@@ -1,0 +1,56 @@
+{
+  "app": "Are We Compatible?",
+  "formatVersion": 2,
+  "exportedAt": "2026-07-16T12:00:00.000Z",
+  "players": {
+    "names": ["Casey", "Riley"]
+  },
+  "settings": {
+    "questionMode": "sliders-only",
+    "sessionPreset": "custom",
+    "playStyle": "pass-and-play",
+    "questionCount": 5,
+    "questionIntensity": "curious",
+    "selectedTopics": ["connection", "love", "fun"],
+    "soundEnabled": false,
+    "soundTheme": "cute",
+    "soundVolume": 0.7,
+    "hapticsEnabled": false,
+    "visualTheme": "midnight",
+    "textSize": "normal",
+    "highContrast": false,
+    "reducedMotion": false,
+    "privatePinHash": "",
+    "tutorialSeen": true
+  },
+  "library": {
+    "answeredQuestionIds": [],
+    "excludedQuestionIds": [],
+    "neverQuestionIds": [],
+    "favoriteQuestionIds": ["int_1"],
+    "questionEdits": {},
+    "questionFlags": {},
+    "questionTagOverrides": {},
+    "customQuestions": [],
+    "customPacks": []
+  },
+  "history": {
+    "completedRounds": []
+  },
+  "currentGame": {
+    "screen": "setup",
+    "selectedQuestionIds": [],
+    "activePlayer": 0,
+    "questionIndex": 0,
+    "answers": [{}, {}],
+    "comments": [{}, {}],
+    "privateNotes": [{}, {}],
+    "importance": [{}, {}],
+    "notReady": [{}, {}],
+    "textRatings": {},
+    "conversationStatus": {},
+    "sharedIntentions": [],
+    "resumeScreen": null,
+    "revealedIds": []
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "are-we-compatible",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A private, playful relationship compatibility game for one device or two nearby phones.",
+  "type": "module",
+  "scripts": {
+    "start": "node scripts/serve.mjs",
+    "test": "node tests/production-check.mjs"
+  },
+  "license": "MIT"
+}
