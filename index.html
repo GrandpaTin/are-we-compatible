@@ -8433,6 +8433,7 @@ var qrcode = function() {
     }
 
     let state = loadState();
+    let lastRenderedScreen = null;
     let libraryView = { filter: "all", topic: "all", search: "", limit: 40 };
     let cleanupResponsiveRender = () => {};
     let deferredInstallPrompt = null;
@@ -8686,11 +8687,35 @@ var qrcode = function() {
       let payload;
       try { payload = JSON.parse(message.data); } catch { return; }
       if (payload.type === "round-init") {
+        const validTopics = new Set(TOPIC_OPTIONS.map((topic) => topic.id));
         (payload.questions || []).forEach((remoteQuestion) => {
+          if (!remoteQuestion || typeof remoteQuestion !== "object" || typeof remoteQuestion.id !== "string") return;
           const builtIn = ALL_QUESTIONS.some((question) => question.id === remoteQuestion.id);
-          const custom = state.customQuestions.find((question) => question.id === remoteQuestion.id);
-          if (builtIn) state.questionEdits[remoteQuestion.id] = { prompt: remoteQuestion.prompt, ...(remoteQuestion.labels ? { labels: remoteQuestion.labels } : {}) };
-          else if (!custom) state.customQuestions.push(remoteQuestion);
+          if (builtIn) {
+            state.questionEdits[remoteQuestion.id] = {
+              prompt: String(remoteQuestion.prompt || "").slice(0, 500),
+              ...(Array.isArray(remoteQuestion.labels) ? { labels: [String(remoteQuestion.labels[0] || "Low").slice(0, 60), String(remoteQuestion.labels[1] || "High").slice(0, 60)] } : {})
+            };
+          } else {
+            const customId = remoteQuestion.id;
+            if (!customId.startsWith("custom_")) return;
+            const customExists = state.customQuestions.find((question) => question.id === customId);
+            if (!customExists && state.customQuestions.length < 150) {
+              const topic = validTopics.has(remoteQuestion.topic) ? remoteQuestion.topic : "connection";
+              const type = remoteQuestion.type === "slider" ? "slider" : "text";
+              const topicLabel = TOPIC_OPTIONS.find((option) => option.id === topic)?.label || "Connection";
+              state.customQuestions.push({
+                id: customId,
+                topic,
+                category: `Custom · ${topicLabel}`,
+                type,
+                prompt: String(remoteQuestion.prompt || "").slice(0, 500),
+                ...(type === "slider"
+                  ? { labels: [String(remoteQuestion.labels?.[0] || "Low").slice(0, 60), String(remoteQuestion.labels?.[1] || "High").slice(0, 60)] }
+                  : {})
+              });
+            }
+          }
         });
         const settings = persistentSetupState();
         state = {
@@ -8701,26 +8726,35 @@ var qrcode = function() {
           selectedQuestionIds: payload.selectedQuestionIds, activePlayer: 1
         };
         nearbyRuntime.role = "join";
+        nearbyRuntime.localComplete = false;
+        nearbyRuntime.remotePayload = null;
         saveState(); render(); playSound("unlock");
       } else if (payload.type === "player-complete") {
         nearbyRuntime.remotePayload = payload;
         finishNearbyRoundIfReady();
       } else if (payload.type === "follow-through") {
-        state.conversationStatus[payload.questionId] = payload.status;
-        saveState();
-        if (state.screen === "reveal") render();
+        if (state.selectedQuestionIds.includes(payload.questionId) && ["talk", "ground", "revisit", "intention"].includes(payload.status)) {
+          state.conversationStatus[payload.questionId] = payload.status;
+          saveState();
+          if (state.screen === "reveal") render();
+        }
       } else if (payload.type === "intention-update") {
-        const existing = state.sharedIntentions.find((item) => item.questionId === payload.questionId);
-        if (existing) existing.text = payload.text;
-        else state.sharedIntentions.push({ id: `intention_${Date.now()}_${randomIndex(10000)}`, questionId: payload.questionId, text: payload.text, createdAt: new Date().toISOString(), completed: false });
-        saveState();
+        if (state.selectedQuestionIds.includes(payload.questionId)) {
+          const text = String(payload.text || "").slice(0, 180);
+          const existing = state.sharedIntentions.find((item) => item.questionId === payload.questionId);
+          if (existing) existing.text = text;
+          else state.sharedIntentions.push({ id: `intention_${Date.now()}_${randomIndex(10000)}`, questionId: payload.questionId, text, createdAt: new Date().toISOString(), completed: false });
+          saveState();
+        }
       } else if (payload.type === "reveal-state" && state.screen === "reveal") {
         state.revealedIds = Array.isArray(payload.revealedIds) ? payload.revealedIds.filter((id) => state.selectedQuestionIds.includes(id)) : [];
         saveState(); render();
       } else if (payload.type === "text-rating") {
-        state.textRatings[payload.questionId] = payload.rating;
-        syncLatestRoundSnapshot(); saveState();
-        if (state.screen === "reveal") render();
+        if (state.selectedQuestionIds.includes(payload.questionId) && ["aligned", "nuanced", "discuss", "different"].includes(payload.rating)) {
+          state.textRatings[payload.questionId] = payload.rating;
+          syncLatestRoundSnapshot(); saveState();
+          if (state.screen === "reveal") render();
+        }
       }
     }
 
@@ -9204,6 +9238,14 @@ var qrcode = function() {
           shimmer.connect(shimmerGain);
           gain.connect(audioContext.destination);
           shimmerGain.connect(audioContext.destination);
+          oscillator.onended = () => {
+            gain.disconnect();
+            oscillator.disconnect();
+          };
+          shimmer.onended = () => {
+            shimmerGain.disconnect();
+            shimmer.disconnect();
+          };
           oscillator.start(noteStart);
           shimmer.start(noteStart);
           oscillator.stop(noteStart + 0.25);
@@ -9918,6 +9960,8 @@ var qrcode = function() {
     }
 
     function render() {
+      const screenChanged = lastRenderedScreen !== state.screen;
+      lastRenderedScreen = state.screen;
       cleanupResponsiveRender();
       cleanupResponsiveRender = () => {};
       applyPreferences();
@@ -9944,7 +9988,9 @@ var qrcode = function() {
         if (button.classList.contains("active")) button.setAttribute("aria-current", "page");
         else button.removeAttribute("aria-current");
       });
-      window.scrollTo({ top: 0, behavior: "auto" });
+      if (screenChanged) {
+        window.scrollTo({ top: 0, behavior: "auto" });
+      }
     }
 
     function savedQuestionAnswersMarkup(question, round) {
@@ -10477,8 +10523,8 @@ var qrcode = function() {
                 <div class="saved-round">
                   <strong style="display:block;font-size:.76rem">${escapeHTML(item.question.prompt)}</strong>
                   <div class="saved-answer-grid" style="margin-top:9px">
-                    <div class="saved-answer" style="--saved-player-color:var(--violet)"><span class="saved-answer-name">Previous</span><span class="saved-answer-value">${escapeHTML(item.previous.answers.join(" · "))}</span></div>
-                    <div class="saved-answer" style="--saved-player-color:var(--coral)"><span class="saved-answer-name">Latest</span><span class="saved-answer-value">${escapeHTML(item.latest.answers.join(" · "))}</span></div>
+                    <div class="saved-answer" style="--saved-player-color:var(--violet)"><span class="saved-answer-name">Previous</span><span class="saved-answer-value">${escapeHTML(item.previous.answers.map(a => (a !== undefined && a !== null && a !== "") ? a : "—").join(" · "))}</span></div>
+                    <div class="saved-answer" style="--saved-player-color:var(--coral)"><span class="saved-answer-name">Latest</span><span class="saved-answer-value">${escapeHTML(item.latest.answers.map(a => (a !== undefined && a !== null && a !== "") ? a : "—").join(" · "))}</span></div>
                   </div>
                 </div>
               `).join("") : '<p class="topic-note">Repeat questions in future rounds to see how your answers evolve.</p>'}
@@ -10829,8 +10875,10 @@ var qrcode = function() {
 
       const rememberNames = () => {
         state.names = [playerOne.value, playerTwo.value];
-        document.querySelector(".orbit-person.one").textContent = initials(playerOne.value);
-        document.querySelector(".orbit-person.two").textContent = initials(playerTwo.value);
+        const p1 = document.querySelector(".orbit-person.one");
+        const p2 = document.querySelector(".orbit-person.two");
+        if (p1) p1.textContent = initials(playerOne.value);
+        if (p2) p2.textContent = initials(playerTwo.value);
         saveState();
       };
 
@@ -10990,9 +11038,9 @@ var qrcode = function() {
           playSound("match");
           render();
           showToast("Backup imported successfully. Your saved state is restored.");
-        } catch (error) {
+        } catch (importError) {
           status.style.color = "var(--coral)";
-          status.textContent = error?.message || "That backup could not be imported.";
+          status.textContent = importError?.message || "That backup could not be imported.";
         } finally {
           importInput.value = "";
         }
@@ -11081,8 +11129,8 @@ var qrcode = function() {
               aria-valuetext="${Number(savedAnswer)} out of 10"
             >
             <div class="range-labels" aria-hidden="true">
-              <span>1 · ${escapeHTML(question.labels[0])}</span>
-              <span>${escapeHTML(question.labels[1])} · 10</span>
+              <span>1 · ${escapeHTML(question.labels?.[0] || "Low")}</span>
+              <span>${escapeHTML(question.labels?.[1] || "High")} · 10</span>
             </div>
           </div>
           <details class="comment-details" ${savedComment ? "open" : ""}>
@@ -11387,8 +11435,8 @@ var qrcode = function() {
       return `
         <div class="comparison-wrap">
           <div class="comparison-scale">
-            <span>1 · ${escapeHTML(question.labels[0])}</span>
-            <span>${escapeHTML(question.labels[1])} · 10</span>
+            <span>1 · ${escapeHTML(question.labels?.[0] || "Low")}</span>
+            <span>${escapeHTML(question.labels?.[1] || "High")} · 10</span>
           </div>
           <div class="comparison-track" style="--p1-pos: ${p1}%; --p2-pos: ${p2}%">
             <div class="comparison-gap" aria-hidden="true"></div>
@@ -11580,7 +11628,10 @@ var qrcode = function() {
           </section>
           <div class="reveal-grid">${cards}</div>
           <div class="actions reveal-actions">
-            <button class="primary-btn" id="new-round" type="button">Play another round</button>
+            ${state.playStyle === "nearby" && nearbyRuntime.role === "join"
+              ? `<button class="primary-btn" id="new-round" type="button" disabled style="opacity:0.6;cursor:not-allowed">Waiting for host...</button>`
+              : `<button class="primary-btn" id="new-round" type="button">Play another round</button>`
+            }
             <button class="text-btn" id="start-over" type="button">Change players</button>
           </div>
           <p class="footer-note">There are no right answers—only new things to learn about each other.</p>
@@ -11719,6 +11770,40 @@ var qrcode = function() {
       });
 
       document.getElementById("new-round").addEventListener("click", () => {
+        const playStyle = state.playStyle;
+        if (playStyle === "nearby") {
+          if (nearbyRuntime.role === "host") {
+            const questionMode = state.questionMode;
+            const questionCount = state.questionCount;
+            const selectedTopics = [...state.selectedTopics];
+            const newIds = chooseRoundQuestions(questionMode, questionCount, selectedTopics);
+            if (newIds.length !== questionCount) {
+              showToast("Not enough questions to start another round with these settings.");
+              return;
+            }
+            state.selectedQuestionIds = newIds;
+            nearbyRuntime.roundStarted = true;
+            nearbyRuntime.localComplete = false;
+            nearbyRuntime.remotePayload = null;
+            const payload = {
+              type: "round-init", names: [...state.names], questionMode,
+              questionIntensity: state.questionIntensity, selectedTopics,
+              selectedQuestionIds: newIds, questions: getSelectedQuestions().filter(Boolean)
+            };
+            sendNearbyMessage(payload);
+            startGame({
+              names: state.names, questionMode, questionCount: newIds.length,
+              selectedTopics, selectedQuestionIds: newIds, playStyle: "nearby"
+            });
+            state.activePlayer = 0;
+            saveState();
+            return;
+          } else {
+            showToast("Waiting for the host to start the next round...");
+            return;
+          }
+        }
+
         const settings = persistentSetupState();
         const questionMode = state.questionMode;
         const questionCount = state.questionCount;
@@ -11741,6 +11826,7 @@ var qrcode = function() {
       });
 
       document.getElementById("start-over").addEventListener("click", () => {
+        closeNearbyConnection();
         state = {
           ...initialState(),
           ...persistentSetupState()
