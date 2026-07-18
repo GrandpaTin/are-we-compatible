@@ -1,4 +1,4 @@
-const CACHE_NAME = "aligned-v5";
+const CACHE_NAME = "aligned-v6";
 const APP_FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./og-image.jpg"];
 
 self.addEventListener("install", (event) => {

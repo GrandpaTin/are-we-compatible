@@ -9895,12 +9895,17 @@ var qrcode = function() {
       }
 
       start() {
-        if (this.isPlaying) return;
+        if (this.isPlaying) {
+          if (this.ctx && this.ctx.state === "suspended") {
+            this.ctx.resume().catch(() => {});
+          }
+          return;
+        }
         if (!this.ctx) this.init();
         if (!this.ctx) return;
 
         if (this.ctx.state === "suspended") {
-          this.ctx.resume();
+          this.ctx.resume().catch(() => {});
         }
 
         this.isPlaying = true;
@@ -12918,6 +12923,24 @@ var qrcode = function() {
     }, { passive: true });
 
     document.addEventListener("click", (event) => {
+      // Resume audio contexts on user interaction to satisfy browser autoplay policy
+      try {
+        if (ambientSoundscape) {
+          if (!ambientSoundscape.ctx) {
+            if (state.ambientMusicEnabled) {
+              ambientSoundscape.start();
+            }
+          } else if (ambientSoundscape.ctx.state === "suspended" && state.ambientMusicEnabled) {
+            ambientSoundscape.ctx.resume().catch(() => {});
+          }
+        }
+        if (audioContext && audioContext.state === "suspended") {
+          audioContext.resume().catch(() => {});
+        }
+      } catch (e) {
+        // Prevent audio issues from blocking user interaction handlers
+      }
+
       const activeDropdown = document.querySelector(".session-dropdown-container.open");
       if (activeDropdown && !event.target.closest(".session-dropdown-container")) {
         activeDropdown.classList.remove("open");
