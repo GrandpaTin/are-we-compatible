@@ -272,15 +272,27 @@
     }
 
     .home-btn:hover {
-      border-color: rgba(251, 113, 133, 0.36);
-      background: rgba(251, 113, 133, 0.09);
+      border-color: color-mix(in srgb, var(--coral) 36%, transparent);
+      background: color-mix(in srgb, var(--coral) 9%, transparent);
       transform: translateY(-2px);
     }
 
     .home-btn.active {
       border-color: var(--coral);
-      background: rgba(251, 113, 133, 0.12);
-      box-shadow: 0 0 12px rgba(251, 113, 133, 0.2);
+      background: color-mix(in srgb, var(--coral) 12%, transparent);
+      box-shadow: 0 0 12px color-mix(in srgb, var(--coral) 20%, transparent);
+    }
+
+    [data-theme] .home-btn:hover {
+      border-color: color-mix(in srgb, var(--coral) 36%, transparent);
+      background: color-mix(in srgb, var(--coral) 9%, transparent);
+      transform: translateY(-2px);
+    }
+
+    [data-theme] .home-btn.active {
+      border-color: var(--coral);
+      background: color-mix(in srgb, var(--coral) 12%, transparent);
+      box-shadow: 0 0 12px color-mix(in srgb, var(--coral) 20%, transparent);
     }
 
     .home-icon {
@@ -295,11 +307,11 @@
       width: 34px;
       height: 34px;
       place-items: center;
-      border: 1px solid rgba(251, 113, 133, 0.36);
+      border: 1px solid color-mix(in srgb, var(--coral) 36%, transparent);
       border-radius: 11px;
       color: var(--coral);
-      background: rgba(251, 113, 133, 0.1);
-      box-shadow: 0 8px 30px rgba(251, 113, 133, 0.12);
+      background: color-mix(in srgb, var(--coral) 10%, transparent);
+      box-shadow: 0 8px 30px color-mix(in srgb, var(--coral) 12%, transparent);
       font-size: 1.2rem;
     }
 
@@ -529,7 +541,7 @@
     }
 
     .session-dropdown-trigger:hover {
-      border-color: rgba(251, 113, 133, 0.4);
+      border-color: color-mix(in srgb, var(--coral) 40%, transparent);
       background: rgba(30, 41, 59, 0.8);
     }
 
@@ -584,7 +596,7 @@
     }
 
     .session-dropdown-item.selected {
-      background: rgba(251, 113, 133, 0.15);
+      background: color-mix(in srgb, var(--coral) 15%, transparent);
       border-left: 2px solid var(--coral);
     }
 
@@ -662,18 +674,18 @@
     }
 
     .mode-option:hover .mode-card {
-      border-color: rgba(251, 113, 133, 0.38);
+      border-color: color-mix(in srgb, var(--coral) 38%, transparent);
       transform: translateY(-2px);
     }
 
     .mode-option input:checked + .mode-card {
       border-color: var(--coral);
-      background: linear-gradient(145deg, rgba(251, 113, 133, 0.15), rgba(167, 139, 250, 0.08));
-      box-shadow: 0 0 0 3px rgba(251, 113, 133, 0.09);
+      background: linear-gradient(145deg, color-mix(in srgb, var(--coral) 15%, transparent), color-mix(in srgb, var(--violet) 8%, transparent));
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--coral) 9%, transparent);
     }
 
     .mode-option input:focus-visible + .mode-card {
-      box-shadow: 0 0 0 4px rgba(251, 113, 133, 0.2);
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--coral) 20%, transparent);
     }
 
     .mode-topline {
@@ -693,7 +705,7 @@
       place-items: center;
       border-radius: 9px;
       color: var(--coral);
-      background: rgba(251, 113, 133, 0.1);
+      background: color-mix(in srgb, var(--coral) 10%, transparent);
     }
 
     .mode-description {
@@ -764,14 +776,14 @@
     }
 
     .count-option:hover .count-card {
-      border-color: rgba(251, 113, 133, 0.38);
+      border-color: color-mix(in srgb, var(--coral) 38%, transparent);
       transform: translateY(-2px);
     }
 
     .count-option input:checked + .count-card {
       border-color: var(--coral);
-      background: rgba(251, 113, 133, 0.11);
-      box-shadow: 0 0 0 3px rgba(251, 113, 133, 0.08);
+      background: color-mix(in srgb, var(--coral) 11%, transparent);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--coral) 8%, transparent);
     }
 
     .topic-toolbar {
@@ -851,7 +863,7 @@
 
     .topic-option input:focus-visible + .topic-chip,
     .count-option input:focus-visible + .count-card {
-      box-shadow: 0 0 0 4px rgba(251, 113, 133, 0.2);
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--coral) 20%, transparent);
     }
 
     .topic-note {
@@ -1145,7 +1157,7 @@
     .progress-star.active {
       color: var(--text);
       background: var(--violet);
-      box-shadow: 0 0 0 5px rgba(167, 139, 250, 0.12), 0 0 18px rgba(167, 139, 250, 0.35);
+      box-shadow: 0 0 0 5px color-mix(in srgb, var(--violet) 12%, transparent), 0 0 18px color-mix(in srgb, var(--violet) 35%, transparent);
       transform: scale(1.18);
       animation: active-star 1.8s ease-in-out infinite;
     }
@@ -2643,6 +2655,12 @@
       transform: translateY(-2px);
     }
 
+    [data-theme] .topic-progress-card:hover,
+    [data-theme] .topic-progress-card.active {
+      border-color: color-mix(in srgb, var(--topic-color) 48%, transparent);
+      background-image: linear-gradient(color-mix(in srgb, var(--topic-color) 8%, transparent), color-mix(in srgb, var(--topic-color) 8%, transparent));
+    }
+
     .topic-progress-top {
       display: flex;
       align-items: center;
@@ -2791,7 +2809,13 @@
     .library-filter.active {
       border-color: var(--violet);
       color: var(--text);
-      background: rgba(167, 139, 250, 0.12);
+      background: color-mix(in srgb, var(--violet) 12%, transparent);
+    }
+
+    [data-theme] .library-filter.active {
+      border-color: var(--violet);
+      color: var(--text);
+      background: color-mix(in srgb, var(--violet) 12%, transparent);
     }
 
     .question-library-list {
@@ -4619,13 +4643,25 @@
     .preset-card.active,
     .play-style-card.active,
     .importance-option.active,
-    .follow-through-button.active { border-color: var(--coral); background: rgba(251, 113, 133, 0.12); box-shadow: 0 0 0 2px rgba(251, 113, 133, 0.12); }
+    .follow-through-button.active { border-color: var(--coral); background: color-mix(in srgb, var(--coral) 12%, transparent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--coral) 12%, transparent); }
+
+    [data-theme] :is(.preset-card, .play-style-card, .importance-option, .follow-through-button).active {
+      border-color: var(--coral);
+      background: color-mix(in srgb, var(--coral) 12%, transparent);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--coral) 12%, transparent);
+    }
 
     .importance-panel { margin-top: 18px; padding: 14px; border: 1px solid var(--line); border-radius: 17px; background: rgba(15, 23, 42, 0.38); }
     .importance-panel > strong { font-size: .78rem; }
     .importance-option { min-height: 48px; padding: 8px; font: inherit; font-size: .68rem; cursor: pointer; }
     .not-ready-button { width: 100%; margin-top: 12px; }
-    .not-ready-button.active { color: var(--sun); border-color: rgba(251, 191, 36, .65); background: rgba(251, 191, 36, .1); }
+    .not-ready-button.active { color: var(--sun); border-color: color-mix(in srgb, var(--sun) 65%, transparent); background: color-mix(in srgb, var(--sun) 10%, transparent); }
+
+    [data-theme] .not-ready-button.active {
+      color: var(--sun);
+      border-color: color-mix(in srgb, var(--sun) 65%, transparent);
+      background: color-mix(in srgb, var(--sun) 10%, transparent);
+    }
     .question-screen { position: relative; isolation: isolate; }
     .question-screen::before { content: ""; position: fixed; z-index: -1; inset: 8% -15% auto; height: 52vh; pointer-events: none; background: radial-gradient(circle, color-mix(in srgb, var(--question-color, var(--coral)) 22%, transparent), transparent 65%); filter: blur(24px); animation: breathe 7s ease-in-out infinite alternate; }
 
@@ -4786,7 +4822,13 @@
     .question-tag { padding: 3px 7px; border-radius: 999px; color: var(--muted); background: rgba(148,163,184,.09); font-size: .58rem; }
     .feedback-menu summary { cursor: pointer; color: var(--muted); font-size: .65rem; }
     .feedback-actions { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
-    .question-library-action.active { color: var(--coral); border-color: rgba(251,113,133,.55); background: rgba(251,113,133,.1); }
+    .question-library-action.active { color: var(--coral); border-color: color-mix(in srgb, var(--coral) 55%, transparent); background: color-mix(in srgb, var(--coral) 10%, transparent); }
+
+    [data-theme] .question-library-action.active {
+      color: var(--coral);
+      border-color: color-mix(in srgb, var(--coral) 55%, transparent);
+      background: color-mix(in srgb, var(--coral) 10%, transparent);
+    }
 
     @media (max-width: 700px) {
       .preset-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -4933,9 +4975,114 @@
     .theme-option input:checked + .theme-card,
     .choice-option input:checked + .choice-card {
       border-color: var(--coral);
-      background: linear-gradient(145deg, rgba(251, 113, 133, 0.16), rgba(167, 139, 250, 0.08));
-      box-shadow: 0 0 0 3px rgba(251, 113, 133, 0.08);
+      background: linear-gradient(145deg, color-mix(in srgb, var(--coral) 16%, transparent), color-mix(in srgb, var(--violet) 8%, transparent));
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--coral) 8%, transparent);
       transform: translateY(-2px);
+    }
+
+    /* Reading comfort settings controls */
+    .text-size-toggle {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      background: rgba(15, 23, 42, 0.38);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 4px;
+      gap: 4px;
+    }
+    
+    [data-theme="sunset"] .text-size-toggle {
+      background: rgba(67, 21, 38, 0.48);
+      border-color: rgba(255, 226, 191, 0.19);
+      border-radius: 18px 6px 18px 6px;
+    }
+    [data-theme="cosmic"] .text-size-toggle {
+      background: rgba(8, 4, 31, 0.72);
+      border-color: rgba(167, 119, 250, 0.24);
+      border-radius: 5px;
+    }
+    [data-theme="pastel"] .text-size-toggle {
+      background: rgba(247, 248, 255, 0.9);
+      border-color: rgba(79, 91, 120, 0.13);
+      border-radius: 18px;
+    }
+
+    .text-size-option {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      padding: 8px 4px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font: inherit;
+      transition: all 180ms ease;
+    }
+    
+    [data-theme="sunset"] .text-size-option {
+      border-radius: 14px 5px 14px 5px;
+    }
+    [data-theme="cosmic"] .text-size-option {
+      border-radius: 3px;
+    }
+    [data-theme="pastel"] .text-size-option {
+      border-radius: 14px;
+    }
+
+    .text-size-option span:first-child {
+      font-weight: 800;
+    }
+    .text-size-option span:last-child {
+      font-size: 0.58rem;
+      font-weight: 500;
+    }
+
+    .text-size-option:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+    }
+    [data-theme="pastel"] .text-size-option:hover {
+      background: rgba(15, 23, 42, 0.04);
+    }
+
+    .text-size-option.active {
+      border-color: var(--coral);
+      background: color-mix(in srgb, var(--coral) 12%, transparent);
+      color: var(--text);
+    }
+    [data-theme="pastel"] .text-size-option.active {
+      background: color-mix(in srgb, var(--coral) 12%, white);
+      box-shadow: 0 4px 12px rgba(85, 74, 112, 0.05);
+    }
+
+    .text-size-preview {
+      margin: 4px 0 0;
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid var(--line);
+      font-size: 1em;
+      line-height: 1.5;
+      color: var(--muted);
+    }
+    [data-theme="sunset"] .text-size-preview {
+      background: rgba(42, 13, 29, 0.58);
+      border-color: rgba(255, 226, 191, 0.24);
+      border-radius: 14px 5px 14px 5px;
+    }
+    [data-theme="cosmic"] .text-size-preview {
+      background: rgba(4, 1, 15, 0.82);
+      border-color: rgba(86, 231, 255, 0.25);
+      border-radius: 3px;
+    }
+    [data-theme="pastel"] .text-size-preview {
+      background: #ffffff;
+      border-color: rgba(79, 91, 120, 0.19);
+      border-radius: 14px;
     }
 
     .topic-option:has(input:disabled) {
@@ -5192,7 +5339,7 @@
     .rating-option.active {
       border-color: var(--rating-color);
       color: var(--text);
-      background: color-mix(in srgb, var(--rating-color) 15%, rgba(15, 23, 42, 0.62));
+      background-image: linear-gradient(color-mix(in srgb, var(--rating-color) 15%, transparent), color-mix(in srgb, var(--rating-color) 15%, transparent));
     }
 
     .private-note-input {
@@ -5221,7 +5368,12 @@
 
     .favorite-button.active {
       color: var(--sun);
-      background: rgba(251, 191, 36, 0.11);
+      background: color-mix(in srgb, var(--sun) 11%, transparent);
+    }
+
+    [data-theme] .favorite-button.active {
+      color: var(--sun);
+      background: color-mix(in srgb, var(--sun) 11%, transparent);
     }
 
     .tutorial-steps {
@@ -5459,7 +5611,7 @@
       -webkit-backdrop-filter: none;
     }
 
-    [data-theme="sunset"] :is(.count-card, .mode-card, .topic-chip, .sound-setting, .library-launcher, .data-tool, .preset-card, .play-style-card, .importance-option, .highlight-card, .follow-through-button, .nearby-choice, .slider-panel, .comment-details, .comparison-wrap, .importance-panel, .follow-through, .round-history-item, .discussion-card, .alignment-rating, .private-reflection, .tutorial-step, .resume-card) {
+    [data-theme="sunset"] :is(.count-card, .mode-card, .topic-chip, .sound-setting, .library-launcher, .data-tool, .preset-card, .play-style-card, .importance-option, .highlight-card, .follow-through-button, .nearby-choice, .slider-panel, .comment-details, .comparison-wrap, .importance-panel, .follow-through, .round-history-item, .discussion-card, .alignment-rating, .rating-option, .private-reflection, .tutorial-step, .resume-card) {
       border-color: rgba(255, 226, 191, 0.19);
       border-radius: 22px 8px 22px 8px;
       background: rgba(67, 21, 38, 0.48);
@@ -5618,7 +5770,7 @@
       box-shadow: 0 0 10px rgba(86, 231, 255, 0.45);
     }
 
-    [data-theme="cosmic"] :is(.count-card, .mode-card, .topic-chip, .sound-setting, .library-launcher, .data-tool, .preset-card, .play-style-card, .importance-option, .highlight-card, .follow-through-button, .nearby-choice, .slider-panel, .comment-details, .comparison-wrap, .importance-panel, .follow-through, .round-history-item, .discussion-card, .alignment-rating, .private-reflection, .tutorial-step, .resume-card) {
+    [data-theme="cosmic"] :is(.count-card, .mode-card, .topic-chip, .sound-setting, .library-launcher, .data-tool, .preset-card, .play-style-card, .importance-option, .highlight-card, .follow-through-button, .nearby-choice, .slider-panel, .comment-details, .comparison-wrap, .importance-panel, .follow-through, .round-history-item, .discussion-card, .alignment-rating, .rating-option, .private-reflection, .tutorial-step, .resume-card) {
       border-color: rgba(167, 119, 255, 0.24);
       border-radius: 5px;
       background: rgba(8, 4, 31, 0.72);
@@ -5783,7 +5935,7 @@
       border-top: 5px solid color-mix(in srgb, var(--question-color, var(--coral)) 58%, white);
     }
 
-    [data-theme="pastel"] :is(.count-card, .mode-card, .topic-chip, .sound-setting, .library-launcher, .data-tool, .preset-card, .play-style-card, .importance-option, .highlight-card, .follow-through-button, .nearby-choice, .slider-panel, .comment-details, .comparison-wrap, .importance-panel, .follow-through, .round-history-item, .discussion-card, .alignment-rating, .private-reflection, .tutorial-step, .resume-card) {
+    [data-theme="pastel"] :is(.count-card, .mode-card, .topic-chip, .sound-setting, .library-launcher, .data-tool, .preset-card, .play-style-card, .importance-option, .highlight-card, .follow-through-button, .nearby-choice, .slider-panel, .comment-details, .comparison-wrap, .importance-panel, .follow-through, .round-history-item, .discussion-card, .alignment-rating, .rating-option, .private-reflection, .tutorial-step, .resume-card) {
       border-color: rgba(79, 91, 120, 0.13);
       border-radius: 18px;
       color: var(--text);
@@ -8730,7 +8882,7 @@ var qrcode = function() {
         soundEnabled: true,
         soundTheme: "cute",
         soundVolume: 0.7,
-        ambientMusicEnabled: false,
+        ambientMusicEnabled: true,
         hapticsEnabled: true,
         visualTheme: "midnight",
         textSize: "normal",
@@ -8931,7 +9083,7 @@ var qrcode = function() {
         if (!INTENSITY_OPTIONS.some((option) => option.id === restored.questionIntensity)) restored.questionIntensity = "curious";
         if (!["cute", "dreamy", "arcade"].includes(restored.soundTheme)) restored.soundTheme = "cute";
         restored.soundVolume = Math.max(0, Math.min(1, Number(restored.soundVolume) || 0.7));
-        restored.ambientMusicEnabled = false; // Always start muted/silent when first opened to align with browser autoplay guidelines
+        restored.ambientMusicEnabled = restored.ambientMusicEnabled !== false; // Default on; audio context still requires user gesture
         restored.hapticsEnabled = restored.hapticsEnabled !== false;
         if (!["midnight", "sunset", "cosmic", "pastel"].includes(restored.visualTheme)) restored.visualTheme = "midnight";
         if (!["small", "normal", "large"].includes(restored.textSize)) restored.textSize = "normal";
@@ -9895,15 +10047,11 @@ var qrcode = function() {
       const ambientBtn = document.getElementById("ambient-toggle");
       if (ambientBtn) {
         ambientBtn.classList.toggle("active", state.ambientMusicEnabled);
-        ambientBtn.style.borderColor = state.ambientMusicEnabled ? "var(--coral)" : "";
-        ambientBtn.style.background = state.ambientMusicEnabled ? "rgba(251, 113, 133, 0.12)" : "";
       }
 
       const soundBtn = document.getElementById("sound-toggle");
       if (soundBtn) {
         soundBtn.classList.toggle("active", state.soundEnabled);
-        soundBtn.style.borderColor = state.soundEnabled ? "var(--coral)" : "";
-        soundBtn.style.background = state.soundEnabled ? "rgba(251, 113, 133, 0.12)" : "";
         const iconSpan = soundBtn.querySelector(".home-icon");
         if (iconSpan) {
           iconSpan.textContent = state.soundEnabled ? "🔊" : "🔇";
@@ -9921,8 +10069,6 @@ var qrcode = function() {
         if (el) {
           const isActive = state.screen === screenName || (screenName === "setup" && state.screen === "setup");
           el.classList.toggle("active", isActive);
-          el.style.borderColor = isActive ? "var(--coral)" : "";
-          el.style.background = isActive ? "rgba(251, 113, 133, 0.12)" : "";
         }
       }
     }
@@ -11384,7 +11530,15 @@ var qrcode = function() {
             </article>
             <article class="settings-card">
               <h3>Reading comfort</h3><p>Helpful for different screens and environments.</p>
-              <div class="setting-row"><label for="text-size">Text size</label><select class="custom-select" id="text-size"><option value="small" ${state.textSize === "small" ? "selected" : ""}>Compact</option><option value="normal" ${state.textSize === "normal" ? "selected" : ""}>Standard</option><option value="large" ${state.textSize === "large" ? "selected" : ""}>Large</option></select></div>
+              <div class="setting-row" style="flex-direction:column;align-items:stretch;gap:8px">
+                <span style="font-size:0.78rem;font-weight:700;color:var(--text)">Text size</span>
+                <div class="text-size-toggle" id="text-size-toggle" role="radiogroup" aria-label="Text size">
+                  <button type="button" class="text-size-option ${state.textSize === "small" ? "active" : ""}" data-size="small" aria-checked="${state.textSize === "small"}"><span style="font-size:0.68rem">A</span><span style="font-size:0.58rem">Compact</span></button>
+                  <button type="button" class="text-size-option ${state.textSize === "normal" ? "active" : ""}" data-size="normal" aria-checked="${state.textSize === "normal"}"><span style="font-size:0.88rem">A</span><span style="font-size:0.58rem">Standard</span></button>
+                  <button type="button" class="text-size-option ${state.textSize === "large" ? "active" : ""}" data-size="large" aria-checked="${state.textSize === "large"}"><span style="font-size:1.15rem">A</span><span style="font-size:0.58rem">Large</span></button>
+                </div>
+                <p class="text-size-preview">The quick brown fox jumps over the lazy dog.</p>
+              </div>
               <div class="setting-row"><span>High contrast</span><input id="high-contrast" type="checkbox" ${state.highContrast ? "checked" : ""}></div>
               <div class="setting-row"><span>Reduce motion</span><input id="reduced-motion" type="checkbox" ${state.reducedMotion ? "checked" : ""}></div>
               <button class="secondary-btn" id="replay-tutorial" type="button" style="margin-top:12px">Replay tutorial</button>
@@ -11431,7 +11585,17 @@ var qrcode = function() {
         }
       });
       document.getElementById("settings-haptics").addEventListener("change", (event) => { state.hapticsEnabled = event.currentTarget.checked; saveState(); pulseHaptic("tap"); });
-      document.getElementById("text-size").addEventListener("change", (event) => { state.textSize = event.currentTarget.value; saveState(); applyPreferences(); });
+      document.getElementById("text-size-toggle").addEventListener("click", (event) => {
+        const btn = event.target.closest(".text-size-option");
+        if (!btn) return;
+        state.textSize = btn.dataset.size;
+        saveState();
+        applyPreferences();
+        btn.closest(".text-size-toggle").querySelectorAll(".text-size-option").forEach(b => {
+          b.classList.toggle("active", b === btn);
+          b.setAttribute("aria-checked", b === btn);
+        });
+      });
       document.getElementById("high-contrast").addEventListener("change", (event) => { state.highContrast = event.currentTarget.checked; saveState(); applyPreferences(); });
       document.getElementById("reduced-motion").addEventListener("change", (event) => { state.reducedMotion = event.currentTarget.checked; saveState(); applyPreferences(); });
       document.getElementById("test-sound").addEventListener("click", () => playSound("match"));
