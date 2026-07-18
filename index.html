@@ -782,7 +782,7 @@
 
     .count-option input:checked + .count-card {
       border-color: var(--coral);
-      background: color-mix(in srgb, var(--coral) 11%, transparent);
+      background: linear-gradient(145deg, color-mix(in srgb, var(--coral) 15%, transparent), color-mix(in srgb, var(--violet) 8%, transparent));
       box-shadow: 0 0 0 3px color-mix(in srgb, var(--coral) 8%, transparent);
     }
 
@@ -4643,12 +4643,21 @@
     .preset-card.active,
     .play-style-card.active,
     .importance-option.active,
-    .follow-through-button.active { border-color: var(--coral); background: color-mix(in srgb, var(--coral) 12%, transparent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--coral) 12%, transparent); }
-
-    [data-theme] :is(.preset-card, .play-style-card, .importance-option, .follow-through-button).active {
+    .follow-through-button.active {
       border-color: var(--coral);
-      background: color-mix(in srgb, var(--coral) 12%, transparent);
-      box-shadow: 0 0 0 2px color-mix(in srgb, var(--coral) 12%, transparent);
+      background: linear-gradient(145deg, color-mix(in srgb, var(--coral) 15%, transparent), color-mix(in srgb, var(--violet) 8%, transparent));
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--coral) 8%, transparent);
+    }
+
+    [data-theme] :is(.preset-card, .play-style-card, .importance-option, .follow-through-button).active,
+    [data-theme] .mode-option input:checked + .mode-card,
+    [data-theme] .count-option input:checked + .count-card,
+    [data-theme] .intensity-option input:checked + .intensity-card,
+    [data-theme] .theme-option input:checked + .theme-card,
+    [data-theme] .choice-option input:checked + .choice-card {
+      border-color: var(--coral) !important;
+      background: linear-gradient(145deg, color-mix(in srgb, var(--coral) 15%, transparent), color-mix(in srgb, var(--violet) 8%, transparent)) !important;
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--coral) 8%, transparent) !important;
     }
 
     .importance-panel { margin-top: 18px; padding: 14px; border: 1px solid var(--line); border-radius: 17px; background: rgba(15, 23, 42, 0.38); }
@@ -6048,12 +6057,15 @@
       background: rgba(255, 255, 255, 0.76);
     }
 
+    [data-theme="pastel"] :is(.preset-card, .play-style-card, .importance-option, .follow-through-button).active,
     [data-theme="pastel"] .theme-option input:checked + .theme-card,
     [data-theme="pastel"] .intensity-option input:checked + .intensity-card,
-    [data-theme="pastel"] .choice-option input:checked + .choice-card {
-      border-color: var(--coral);
-      background: linear-gradient(145deg, rgba(255, 220, 228, 0.75), rgba(231, 222, 255, 0.7));
-      box-shadow: 0 0 0 3px rgba(233, 103, 130, 0.1), 0 10px 22px rgba(85, 74, 112, 0.08);
+    [data-theme="pastel"] .choice-option input:checked + .choice-card,
+    [data-theme="pastel"] .mode-option input:checked + .mode-card,
+    [data-theme="pastel"] .count-option input:checked + .count-card {
+      border-color: var(--coral) !important;
+      background: linear-gradient(145deg, color-mix(in srgb, var(--coral) 20%, white), color-mix(in srgb, var(--violet) 14%, white)) !important;
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--coral) 12%, transparent), 0 10px 22px rgba(85, 74, 112, 0.08) !important;
     }
 
     /* Custom tooltips for topbar actions */
